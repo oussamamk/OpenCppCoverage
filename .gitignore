@@ -34,3 +34,5 @@ CoverageData.pb.cc
 .superpowers/
 .claude/worktrees/
 ThirdParty.*.nupkg
+nuget.exe
+Build/ThirdParty/vcpkg-new
