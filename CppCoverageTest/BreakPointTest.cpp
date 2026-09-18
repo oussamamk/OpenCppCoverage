@@ -17,6 +17,7 @@
 #include "stdafx.h"
 
 #include "CppCoverage/BreakPoint.hpp"
+#include <cstring>
 #include <random>
 
 using CppCoverage::BreakPoint;
@@ -49,12 +50,12 @@ namespace CppCoverageTest
 		}
 
 		//---------------------------------------------------------------------
-		std::map<DWORD64, unsigned char> BuildOldInstructionsMap(
+		std::map<DWORD64, BreakPoint::InstructionValue> BuildOldInstructionsMap(
 		    BreakPoint::InstructionCollection& oldInstructionCollection,
 		    const std::vector<DWORD64>& addresses)
 		{
 			std::set<DWORD64> addressesSet{addresses.begin(), addresses.end()};
-			std::map<DWORD64, unsigned char> oldInstructionsMap;
+			std::map<DWORD64, BreakPoint::InstructionValue> oldInstructionsMap;
 
 			for (const auto& pair : oldInstructionCollection)
 			{
@@ -81,16 +82,48 @@ namespace CppCoverageTest
 		BreakPoint breakPoint;
 
 		auto values = GenerateValues(20000, 100);
-		auto randomIndexes = GetRandomIndexes(100, static_cast<int>(values.size() - 1));
+		const auto originalValues = values;
+		// On ARM64 a breakpoint writes 4 bytes: like real code addresses,
+		// indexes are aligned so patched ranges never overlap. Distinct
+		// indexes can align to the same address: deduplicate.
+		auto randomIndexes = GetRandomIndexes(
+		    100,
+		    static_cast<int>(values.size() - sizeof(BreakPoint::InstructionValue)));
+
+		std::set<size_t> alignedIndexes;
+		for (auto index : randomIndexes)
+		{
+			auto alignedIndex =
+			    index - (index % sizeof(BreakPoint::InstructionValue));
+			alignedIndexes.insert(alignedIndex);
+		}
 
 		std::vector<DWORD64> addresses;
-		for (auto index : randomIndexes)
+		for (auto index : alignedIndexes)
 			addresses.push_back(ToDWORD64(&values[index]));
 
 		auto oldInstructionCollection = breakPoint.SetBreakPoints(
 		    GetCurrentProcess(), std::move(addresses));
 		auto oldInstructionsMap =
 		    BuildOldInstructionsMap(oldInstructionCollection, addresses);
+
+		// Bytes covered by a breakpoint but not at its start cannot be
+		// checked: they are overwritten by the breakpoint instruction.
+		std::set<size_t> coveredTailIndexes;
+		for (auto addressValue : addresses)
+		{
+			auto index = static_cast<size_t>(
+			    (addressValue - ToDWORD64(values.data()))
+			    / sizeof(BreakPoint::InstructionValue));
+			for (size_t j = 1; j < sizeof(BreakPoint::InstructionValue); ++j)
+				coveredTailIndexes.insert(index + j);
+		}
+
+		std::vector<unsigned char> breakPointBytes(
+		    sizeof(BreakPoint::breakPointInstruction));
+		memcpy(breakPointBytes.data(),
+		       &BreakPoint::breakPointInstruction,
+		       breakPointBytes.size());
 
 		for (size_t i = 0; i < values.size(); ++i)
 		{
@@ -99,8 +132,23 @@ namespace CppCoverageTest
 
 			if (it != oldInstructionsMap.end())
 			{
-				ASSERT_EQ(BreakPoint::breakPointInstruction, values[i]);
-				ASSERT_EQ(i % 100, it->second);
+				// The breakpoint overwrites sizeof(InstructionValue) bytes
+				// starting at the address: compare them byte per byte. The
+				// vector is big enough: an aligned index cannot be the last
+				// one.
+				for (size_t j = 0; j < breakPointBytes.size(); ++j)
+					ASSERT_EQ(breakPointBytes[j], values[i + j]);
+
+				// The saved instruction is the original bytes at the address.
+				BreakPoint::InstructionValue expectedOldInstruction = 0;
+				memcpy(&expectedOldInstruction,
+				       &originalValues[i],
+				       sizeof(expectedOldInstruction));
+				ASSERT_EQ(expectedOldInstruction, it->second);
+			}
+			else if (coveredTailIndexes.count(i))
+			{
+				// Tail byte of another breakpoint: overwritten, skip.
 			}
 			else
 				ASSERT_EQ(i % 100, values[i]);
@@ -111,7 +159,9 @@ namespace CppCoverageTest
 	TEST(BreakPointTest, SetBreakPointsSingle)
 	{
 		CppCoverage::BreakPoint breakPoint;
-		unsigned char value = 42;
+		// The breakpoint overwrites sizeof(InstructionValue) bytes at &value:
+		// make the buffer big enough to be written in-bounds.
+		BreakPoint::InstructionValue value = 42;
 
 		auto oldInstructionCollection =
 		    breakPoint.SetBreakPoints(GetCurrentProcess(), {ToDWORD64(&value)});

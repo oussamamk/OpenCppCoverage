@@ -17,6 +17,8 @@
 #include "stdafx.h"
 #include "BreakPoint.hpp"
 
+#include <cstring>
+
 #include "CppCoverageException.hpp"
 #include "Address.hpp"
 
@@ -47,15 +49,23 @@ namespace CppCoverage
 		for (auto it = begin; it < end; ++it)
 		{
 			auto index = static_cast<size_t>(*it - firstValue);
-			auto oldInstruction = buffer[index];
-			buffer[index] = BreakPoint::breakPointInstruction;
+			BreakPoint::InstructionValue oldInstruction;
+			memcpy(&oldInstruction, &buffer[index], sizeof(oldInstruction));
+			memcpy(&buffer[index],
+			       &BreakPoint::breakPointInstruction,
+			       sizeof(BreakPoint::breakPointInstruction));
 			oldInstructions.emplace_back(oldInstruction, *it);
 		}
 		Tools::WriteProcessMemory(
 		    hProcess, firstAddress, &buffer[0], buffer.size());
 	}
 
-	const unsigned char BreakPoint::breakPointInstruction = 0xCC;
+#ifdef _M_ARM64
+	const BreakPoint::InstructionValue BreakPoint::breakPointInstruction =
+	    0xD43E0000; // BRK #0xF000
+#else
+	const BreakPoint::InstructionValue BreakPoint::breakPointInstruction = 0xCC; // int3
+#endif
 
 	//-------------------------------------------------------------------------
 	BreakPoint::InstructionCollection
@@ -82,7 +92,7 @@ namespace CppCoverage
 
 	//-------------------------------------------------------------------------
 	void BreakPoint::RemoveBreakPoint(const Address& address,
-	                                  unsigned char oldInstruction) const
+	                                  InstructionValue oldInstruction) const
 	{
 		Tools::WriteProcessMemory(address.GetProcessHandle(),
 		                          address.GetValue(),
@@ -93,6 +103,10 @@ namespace CppCoverage
 	//-------------------------------------------------------------------------
 	void BreakPoint::AdjustEipAfterBreakPointRemoval(HANDLE hThread) const
 	{
+#ifdef _M_ARM64
+		// BRK reports PC pointing at the breakpoint instruction itself.
+		// After restoring the original instruction nothing to adjust: continue at PC.
+#else
 		CONTEXT lcContext;
 		lcContext.ContextFlags = CONTEXT_ALL;
 		if (!GetThreadContext(hThread, &lcContext))
@@ -105,5 +119,6 @@ namespace CppCoverage
 #endif
 		if (!SetThreadContext(hThread, &lcContext))
 			THROW_LAST_ERROR("Error in SetThreadContext", GetLastError());
+#endif
 	}
 }

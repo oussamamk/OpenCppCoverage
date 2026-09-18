@@ -25,6 +25,7 @@
 
 #include "Plugin/Exporter/CoverageData.hpp"
 #include "CppCoverageExport.hpp"
+#include "BreakPoint.hpp"
 
 namespace CppCoverage
 {
@@ -44,9 +45,9 @@ namespace CppCoverage
 			const Address&,
 			const std::wstring& filename,
 			unsigned int line,
-			unsigned char instruction);
+			BreakPoint::InstructionValue instruction);
 
-		boost::optional<unsigned char> MarkAddressAsExecuted(const Address&);
+		boost::optional<BreakPoint::InstructionValue> MarkAddressAsExecuted(const Address&);
 
 		Plugin::CoverageData CreateCoverageData(const std::wstring& name, int exitCode) const;
 		void OnExitProcess(HANDLE hProcess);

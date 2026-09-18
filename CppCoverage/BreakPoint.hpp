@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <Windows.h>
 #include "CppCoverageExport.hpp"
 
@@ -28,13 +30,19 @@ namespace CppCoverage
 	  public:
 		BreakPoint() = default;
 
-		static const unsigned char breakPointInstruction;
+#ifdef _M_ARM64
+		using InstructionValue = uint32_t;
+#else
+		using InstructionValue = unsigned char;
+#endif
+
+		static const InstructionValue breakPointInstruction;
 
 		void RemoveBreakPoint(const Address&,
-		                      unsigned char oldInstruction) const;
+		                      InstructionValue oldInstruction) const;
 
 		using InstructionCollection =
-		    std::vector<std::pair<unsigned char, DWORD64>>;
+		    std::vector<std::pair<InstructionValue, DWORD64>>;
 
 		InstructionCollection
 		SetBreakPoints(HANDLE hProcess, std::vector<DWORD64>&& addresses) const;

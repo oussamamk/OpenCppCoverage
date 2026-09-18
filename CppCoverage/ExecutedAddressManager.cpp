@@ -26,19 +26,21 @@
 #include "Plugin/Exporter/ModuleCoverage.hpp"
 #include "Plugin/Exporter/FileCoverage.hpp"
 #include "Address.hpp"
+#include "BreakPoint.hpp"
 
 namespace CppCoverage
 {
 	//-------------------------------------------------------------------------
 	struct ExecutedAddressManager::Line
 	{
-		explicit Line(unsigned char instructionToRestore, void* dllBaseOfImage)
+		explicit Line(BreakPoint::InstructionValue instructionToRestore,
+		              void* dllBaseOfImage)
 			: instructionToRestore_{ instructionToRestore }
 			, dllBaseOfImage_{ dllBaseOfImage }
 		{
 		}
 
-		const unsigned char instructionToRestore_;
+		const BreakPoint::InstructionValue instructionToRestore_;
 		void* const dllBaseOfImage_;
 		boost::container::small_vector<bool*, 1> hasBeenExecutedCollection_;
 	};
@@ -90,8 +92,8 @@ namespace CppCoverage
 	bool ExecutedAddressManager::RegisterAddress(
 		const Address& address,
 		const std::wstring& filename,
-		unsigned int lineNumber, 
-		unsigned char instructionValue)
+		unsigned int lineNumber,
+		BreakPoint::InstructionValue instructionValue)
 	{
 		auto& module = GetLastAddedModule();
 		auto& file = module.files_[filename];
@@ -126,8 +128,8 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
-	boost::optional<unsigned char> ExecutedAddressManager::MarkAddressAsExecuted(
-		const Address& address)
+	boost::optional<BreakPoint::InstructionValue>
+	ExecutedAddressManager::MarkAddressAsExecuted(const Address& address)
 	{
 		auto it = addressLineMap_.find(address);
 
