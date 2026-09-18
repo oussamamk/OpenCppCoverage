@@ -16,6 +16,7 @@
 
 #include "stdafx.h"
 
+#include <algorithm>
 #include <fstream>
 
 #include "CppCoverage/DebugInformationEnumerator.hpp"
@@ -93,6 +94,17 @@ namespace CppCoverageTest
 		auto lineWithDebugInfo = GetLineNumbersWithTag(
 		    debugInformationHandler.selectedFullPath_, L"@DebugInfoExpected");
 
+#ifdef _M_ARM64
+		// On ARM64, MSVC emits packed epilogues without line records, so the
+		// closing brace of the function (line 30) has no debug info.
+		const int closingBraceLine = 30;
+		ASSERT_EQ(1, std::count(lineWithDebugInfo.begin(),
+		                        lineWithDebugInfo.end(), closingBraceLine));
+		lineWithDebugInfo.erase(
+		    std::remove(lineWithDebugInfo.begin(), lineWithDebugInfo.end(),
+		                closingBraceLine),
+		    lineWithDebugInfo.end());
+#endif
 		ASSERT_EQ(debugInformationHandler.lines_, lineWithDebugInfo);
 	}
 }

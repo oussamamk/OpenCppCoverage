@@ -103,22 +103,24 @@ namespace CppCoverage
 	//-------------------------------------------------------------------------
 	void BreakPoint::AdjustEipAfterBreakPointRemoval(HANDLE hThread) const
 	{
-#ifdef _M_ARM64
-		// BRK reports PC pointing at the breakpoint instruction itself.
-		// After restoring the original instruction nothing to adjust: continue at PC.
-#else
 		CONTEXT lcContext;
 		lcContext.ContextFlags = CONTEXT_ALL;
 		if (!GetThreadContext(hThread, &lcContext))
 			THROW_LAST_ERROR("Error in GetThreadContext", GetLastError());
 
+#ifdef _M_ARM64
+		// On Windows ARM64 the breakpoint exception reports the context Pc at
+		// the continuation address (the instruction after the 4-byte BRK).
+		// Move back one instruction so the restored original instruction runs.
+		lcContext.Pc -= sizeof(BreakPoint::breakPointInstruction);
+#else
 #ifdef _WIN64
 		--lcContext.Rip; // Move back one byte
 #else
 		--lcContext.Eip; // Move back one byte
 #endif
+#endif
 		if (!SetThreadContext(hThread, &lcContext))
 			THROW_LAST_ERROR("Error in SetThreadContext", GetLastError());
-#endif
 	}
 }

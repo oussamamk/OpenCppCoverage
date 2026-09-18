@@ -28,6 +28,8 @@ namespace fs = std::filesystem;
 namespace CppCoverageTest
 {
 	//---------------------------------------------------------------------
+	// C++/CLI (DefaultTest.dll from TestCppCli) is not built for ARM64.
+#ifndef _M_ARM64
 	TEST(CppCliTest, ManagedUnManagedModule)
 	{
 		auto vsPath = TestHelper::GetVisualStudioPath();
@@ -49,4 +51,5 @@ namespace CppCoverageTest
 		ASSERT_EQ(1, modules.size());
 		ASSERT_EQ(sharedLibModulePath, modules.at(0)->GetPath());
 	}
+#endif
 }

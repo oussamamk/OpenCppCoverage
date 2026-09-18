@@ -113,8 +113,7 @@ namespace CppCoverageTest
 		for (auto addressValue : addresses)
 		{
 			auto index = static_cast<size_t>(
-			    (addressValue - ToDWORD64(values.data()))
-			    / sizeof(BreakPoint::InstructionValue));
+			    addressValue - ToDWORD64(values.data()));
 			for (size_t j = 1; j < sizeof(BreakPoint::InstructionValue); ++j)
 				coveredTailIndexes.insert(index + j);
 		}

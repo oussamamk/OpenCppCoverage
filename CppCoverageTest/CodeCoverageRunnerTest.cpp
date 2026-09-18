@@ -213,10 +213,21 @@ namespace CppCoverageTest
 		int line = 28;
 
 		TestLine(file, line++, true);
+#ifdef _M_ARM64
+		// On ARM64, MSVC emits no line entry for the lambda closing line
+		// (line 31): packed epilogues without line records.
+		TestLine(file, line++, true);
+		TestLine(file, line++, true);
 		ASSERT_EQ(nullptr, file[line++]);
 		TestLine(file, line++, true);
+#else
+		// With the v143 toolset, x64 emits a line entry for line 29 (the
+		// lambda-opening brace) too, unlike v142.
 		TestLine(file, line++, true);
 		TestLine(file, line++, true);
+		TestLine(file, line++, true);
+		TestLine(file, line++, true);
+#endif
 	}
 
 	//-------------------------------------------------------------------------
