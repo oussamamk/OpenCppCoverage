@@ -21,7 +21,7 @@ if (Test-Path "$scriptFolder\packages\ThirdParty.1.5.0\installed\arm64-windows\l
         $src = "$scriptFolder\packages\ThirdParty.1.5.0\installed\arm64-windows\$($pair.Source)"
         $dst = "$scriptFolder\packages\ThirdParty.1.5.0\installed\arm64-windows\$($pair.Dest)"
         if (-Not (Test-Path $dst -PathType Leaf)) {
-            New-Item -ItemType File -Force -Path (Split-Path $dst) | Out-Null
+            New-Item -ItemType Directory -Force -Path (Split-Path $dst) | Out-Null
             Copy-Item $src $dst
         }
     }

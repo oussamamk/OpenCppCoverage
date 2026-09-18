@@ -36,8 +36,15 @@ namespace Tools
 
 		if (machine == IMAGE_FILE_MACHINE_I386)
 			handler.OnNtHeader32(hProcess, baseOfImage, *ntHeader32);
-		else if (machine == IMAGE_FILE_MACHINE_AMD64 ||
-		         machine == IMAGE_FILE_MACHINE_ARM64)
+		else if (machine == IMAGE_FILE_MACHINE_AMD64
+#ifdef _M_ARM64
+		         // Only an ARM64-native build accepts 0xAA64 modules: an
+		         // x86/x64 build cannot patch 4-byte ARM64 breakpoints into
+		         // ARM64 code, so it must reject them with the
+		         // unsupported-machine error below.
+		         || machine == IMAGE_FILE_MACHINE_ARM64
+#endif
+		        )
 		{
 			// ARM64 Windows images are PE32+ (same optional header as AMD64).
 			auto ntHeader64 = ReadStructInProcessMemory<IMAGE_NT_HEADERS64>(
