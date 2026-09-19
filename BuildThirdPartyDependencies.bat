@@ -77,6 +77,10 @@ IF NOT EXIST downloads\jom_1_1_3.zip (
 	IF ERRORLEVEL 1 (echo WARNING: jom prefetch failed - openssl build may hit download.qt.io flakiness)
 )
 
+rem zlib and pcre are PocoFoundation's and boost-iostreams' runtime deps;
+rem install them explicitly so they never depend on transitive luck.
+.\vcpkg install zlib:x64-windows zlib:x86-windows
+.\vcpkg install pcre:x64-windows pcre:x86-windows
 .\vcpkg install poco:x64-windows poco:x86-windows
 .\vcpkg install protobuf:x64-windows protobuf:x86-windows
 .\vcpkg install gtest:x64-windows gtest:x86-windows
@@ -96,6 +100,8 @@ IF NOT EXIST downloads\jom_1_1_3.zip (
 .\vcpkg install boost-iostreams:x64-windows boost-iostreams:x86-windows
   
 .\vcpkg export ^
+	zlib:x64-windows zlib:x86-windows ^
+	pcre:x64-windows pcre:x86-windows ^
 	poco:x64-windows poco:x86-windows ^
 	protobuf:x64-windows protobuf:x86-windows ^
 	gtest:x64-windows gtest:x86-windows ^
@@ -139,6 +145,10 @@ rem add it to the port's patch list
 powershell -NoProfile -Command "(Get-Content ports\ctemplate\portfile.cmake) -replace 'PATCHES', 'PATCHES fix-arm64-macros.patch' | Set-Content ports\ctemplate\portfile.cmake"
 :CTEMPLATE_PATCHED
 
+rem zlib is PocoFoundation's and boost-iostreams' runtime dep; install it
+rem explicitly so it never depends on transitive luck. (pcre is not needed on
+rem arm64 - Poco arm64 comes from a separate merge, not this instance.)
+.\vcpkg install zlib:arm64-windows
 .\vcpkg install protobuf:arm64-windows gtest:arm64-windows ctemplate:arm64-windows
 .\vcpkg install boost-optional:arm64-windows boost-filesystem:arm64-windows
 .\vcpkg install boost-algorithm:arm64-windows boost-container:arm64-windows
@@ -149,6 +159,7 @@ powershell -NoProfile -Command "(Get-Content ports\ctemplate\portfile.cmake) -re
 .\vcpkg install boost-iostreams:arm64-windows
 
 .\vcpkg export ^
+	zlib:arm64-windows ^
 	protobuf:arm64-windows ^
 	gtest:arm64-windows ^
 	ctemplate:arm64-windows ^
