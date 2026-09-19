@@ -53,6 +53,34 @@ rem   - generator map + cmake repoint matter for non-PREFER_NINJA ports
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-vcpkg-vs2022-generator.ps1" -VcpkgRoot "."
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\repoint-vcpkg-cmake.ps1" -VcpkgRoot "."
 
+rem If the x86/x64 export nupkg is missing (its bat not run yet on this
+rem pass), mint it here so the assembly has both exports. Skipped instantly
+rem when BuildThirdPartyDependencies.bat already produced it.
+IF NOT EXIST ThirdParty.1.5.0.nupkg (
+	echo x86/x64 export nupkg missing - running the x86/x64 export now ...
+	.\vcpkg export ^
+		zlib:x64-windows zlib:x86-windows ^
+		pcre:x64-windows pcre:x86-windows ^
+		poco:x64-windows poco:x86-windows ^
+		protobuf:x64-windows protobuf:x86-windows ^
+		gtest:x64-windows gtest:x86-windows ^
+		ctemplate:x64-windows ctemplate:x86-windows ^
+		boost-optional:x64-windows boost-optional:x86-windows ^
+		boost-filesystem:x64-windows boost-filesystem:x86-windows ^
+		boost-algorithm:x64-windows boost-algorithm:x86-windows ^
+		boost-container:x64-windows boost-container:x86-windows ^
+		boost-program-options:x64-windows boost-program-options:x86-windows ^
+		boost-regex:x64-windows boost-regex:x86-windows ^
+		boost-range:x64-windows boost-range:x86-windows ^
+		boost-log:x64-windows boost-log:x86-windows ^
+		boost-property-tree:x64-windows boost-property-tree:x86-windows ^
+		boost-spirit:x64-windows boost-spirit:x86-windows ^
+		boost-uuid:x64-windows boost-uuid:x86-windows ^
+		boost-locale:x64-windows boost-locale:x86-windows ^
+		boost-iostreams:x64-windows boost-iostreams:x86-windows ^
+		--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
+)
+
 rem prefetch jom (openssl) - same file as the x86/x64 bat, shared cache
 IF NOT EXIST downloads\jom_1_1_3.zip (
 	curl -fL -o downloads\jom_1_1_3.zip "https://qt.mirrorservice.org/official_releases/jom/jom_1_1_3.zip"
