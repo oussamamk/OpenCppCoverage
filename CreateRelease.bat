@@ -1,51 +1,108 @@
-mkdir NewRelease
+@echo off
+rem Assemble the release layout for all architectures.
+rem Prerequisites: build Release for x86, x64 and ARM64 first:
+rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=x86
+rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=x64
+rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=ARM64
+rem (TestCppCli is excluded from ARM64 configs by the solution.)
+rem The bat must run from the solution root; outputs land in NewRelease\<arch>\.
+
+setlocal
+set ERROR=0
+
+rem ---------------------------------------------------------------------------
+rem x86 (source dir: x86\Release; upstream convention)
+rem ---------------------------------------------------------------------------
+set X86=x86\Release
+if not exist %X86%\OpenCppCoverage.exe (echo MISSING %X86%& set ERROR=1& goto :eof)
+
 mkdir NewRelease\x86\Binaries
 mkdir NewRelease\x86\Binaries\Template
-xcopy /y /s /e Release\Template NewRelease\x86\Binaries\Template
-xcopy /y Release\OpenCppCoverage.exe NewRelease\x86\Binaries
-xcopy /y Release\Exporter.dll NewRelease\x86\Binaries
-xcopy /y Release\CppCoverage.dll NewRelease\x86\Binaries
-xcopy /y Release\Tools.dll NewRelease\x86\Binaries
-xcopy /y Release\libctemplate.dll NewRelease\x86\Binaries
-xcopy /y Release\template_test_util_test.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_filesystem-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_program_options-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_system-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_log-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_thread-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_regex-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_date_time-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_locale-vc120-mt-1_55.dll NewRelease\x86\Binaries
-xcopy /y Release\boost_chrono-vc120-mt-1_55.dll NewRelease\x86\Binaries
+xcopy /y /s /e %X86%\Template NewRelease\x86\Binaries\Template\
+xcopy /y %X86%\OpenCppCoverage.exe NewRelease\x86\Binaries\
+xcopy /y %X86%\Exporter.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\CppCoverage.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\Tools.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\FileFilter.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\Plugin.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\msdia140.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\libctemplate.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_filesystem-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_locale-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_log-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_iostreams.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_program_options-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\boost_thread-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 
 mkdir NewRelease\x86\Pdb
-xcopy /y Release\OpenCppCoverage.pdb NewRelease\x86\Pdb
-xcopy /y Release\Exporter.pdb NewRelease\x86\Pdb
-xcopy /y Release\CppCoverage.pdb NewRelease\x86\Pdb
-xcopy /y Release\Tools.pdb NewRelease\x86\Pdb
+xcopy /y %X86%\OpenCppCoverage.pdb NewRelease\x86\Pdb\
+xcopy /y %X86%\Exporter.pdb NewRelease\x86\Pdb\
+xcopy /y %X86%\CppCoverage.pdb NewRelease\x86\Pdb\
+xcopy /y %X86%\Tools.pdb NewRelease\x86\Pdb\
+xcopy /y %X86%\FileFilter.pdb NewRelease\x86\Pdb\
+
+rem ---------------------------------------------------------------------------
+rem x64
+rem ---------------------------------------------------------------------------
+set X64=x64\Release
+if not exist %X64%\OpenCppCoverage.exe (echo MISSING %X64%& set ERROR=1& goto :eof)
 
 mkdir NewRelease\x64\Binaries
 mkdir NewRelease\x64\Binaries\Template
-xcopy /y /s /e Release\Template NewRelease\x64\Binaries\Template
-xcopy /y x64\Release\OpenCppCoverage.exe NewRelease\x64\Binaries
-xcopy /y x64\Release\Exporter.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\CppCoverage.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\Tools.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\libctemplate.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\template_test_util_test.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_filesystem-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_program_options-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_system-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_log-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_thread-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_regex-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_date_time-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_locale-vc120-mt-1_55.dll NewRelease\x64\Binaries
-xcopy /y x64\Release\boost_chrono-vc120-mt-1_55.dll NewRelease\x64\Binaries
+xcopy /y /s /e %X64%\Template NewRelease\x64\Binaries\Template\
+xcopy /y %X64%\OpenCppCoverage.exe NewRelease\x64\Binaries\
+xcopy /y %X64%\Exporter.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\CppCoverage.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\Tools.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\FileFilter.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\Plugin.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\msdia140.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\libctemplate.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_filesystem-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_locale-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_log-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_iostreams.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_program_options-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\boost_thread-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 
 mkdir NewRelease\x64\Pdb
-xcopy /y x64\Release\OpenCppCoverage.pdb NewRelease\x64\Pdb
-xcopy /y x64\Release\Exporter.pdb NewRelease\x64\Pdb
-xcopy /y x64\Release\CppCoverage.pdb NewRelease\x64\Pdb
-xcopy /y x64\Release\Tools.pdb NewRelease\x64\Pdb
+xcopy /y %X64%\OpenCppCoverage.pdb NewRelease\x64\Pdb\
+xcopy /y %X64%\Exporter.pdb NewRelease\x64\Pdb\
+xcopy /y %X64%\CppCoverage.pdb NewRelease\x64\Pdb\
+xcopy /y %X64%\Tools.pdb NewRelease\x64\Pdb\
+xcopy /y %X64%\FileFilter.pdb NewRelease\x64\Pdb\
+
+rem ---------------------------------------------------------------------------
+rem ARM64 (TestCppCli excluded from ARM64 configs; nothing else differs)
+rem ---------------------------------------------------------------------------
+set A64=ARM64\Release
+if not exist %A64%\OpenCppCoverage.exe (echo MISSING %A64%& set ERROR=1& goto :eof)
+
+mkdir NewRelease\ARM64\Binaries
+mkdir NewRelease\ARM64\Binaries\Template
+xcopy /y /s /e %A64%\Template NewRelease\ARM64\Binaries\Template\
+xcopy /y %A64%\OpenCppCoverage.exe NewRelease\ARM64\Binaries\
+xcopy /y %A64%\Exporter.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\CppCoverage.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\Tools.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\FileFilter.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\Plugin.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\msdia140.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\libctemplate.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_filesystem-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_locale-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_log-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_iostreams-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_program_options-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\boost_thread-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+
+mkdir NewRelease\ARM64\Pdb
+xcopy /y %A64%\OpenCppCoverage.pdb NewRelease\ARM64\Pdb\
+xcopy /y %A64%\Exporter.pdb NewRelease\ARM64\Pdb\
+xcopy /y %A64%\CppCoverage.pdb NewRelease\ARM64\Pdb\
+xcopy /y %A64%\Tools.pdb NewRelease\ARM64\Pdb\
+xcopy /y %A64%\FileFilter.pdb NewRelease\ARM64\Pdb\
+
+if %ERROR% neq 0 echo SOME RELEASE TREES WERE MISSING - layout is partial.
+if %ERROR% equ 0 echo Done. Zip NewRelease and attach it to a GitHub release.
 pause
