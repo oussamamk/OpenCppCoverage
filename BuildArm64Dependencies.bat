@@ -65,7 +65,10 @@ rem ---------------------------------------------------------------------------
 cd ..
 cd vcpkg-modern
 git fetch
-git reset --hard origin/master
+rem pinned to the commit that produced the arm64 boost 1.92 set shipped in
+rem the first 1.5.0 package; a master bump mid-package would silently change
+rem boost versions. Bump deliberately alongside the package version.
+git reset --hard 319504a5326aa870edde46438c5455fa76305a56
 
 IF EXIST vcpkg.exe GOTO MODERN_VCPKG_EXISTS
 	call .\bootstrap-vcpkg.bat
