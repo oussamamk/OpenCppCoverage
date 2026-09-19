@@ -37,6 +37,8 @@ xcopy /y %X86%\boost_program_options-vc142-mt-x32-1_72.dll NewRelease\x86\Binari
 xcopy /y %X86%\boost_thread-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\bz2.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\zstd.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\zlib1.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\lzma.dll NewRelease\x86\Binaries\
 mkdir NewRelease\x86\Binaries\Plugins\Exporter
 
 mkdir NewRelease\x86\Pdb
@@ -74,6 +76,8 @@ xcopy /y %X64%\boost_program_options-vc142-mt-x64-1_72.dll NewRelease\x64\Binari
 xcopy /y %X64%\boost_thread-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\bz2.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\zstd.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\zlib1.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\lzma.dll NewRelease\x64\Binaries\
 
 mkdir NewRelease\x64\Pdb
 xcopy /y %X64%\OpenCppCoverage.pdb NewRelease\x64\Pdb\
