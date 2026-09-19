@@ -53,8 +53,8 @@ IF EXIST vcpkg.exe GOTO VCPKG_EXISTS
 	)
 	IF NOT DEFINED SDKVER set "SDKVER=10.0"
 	"%MSBUILD%" toolsrc\vcpkg.sln /p:Configuration=Release /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=%SDKVER% /m /nologo /v:m
-	IF ERRORLEVEL 1 (echo ERROR: building vcpkg.exe from toolsrc failed & exit /b 1)
-	copy /y toolsrc\vcpkg\vcpkg.exe vcpkg.exe
+	IF ERRORLEVEL 1 (echo ERROR: building vcpkg.exe from toolsrc flat build failed & exit /b 1)
+	copy /y toolsrc\msbuild.x64.release\vcpkg.exe vcpkg.exe
 :VCPKG_EXISTS
 
 .\vcpkg install poco:x64-windows poco:x86-windows
