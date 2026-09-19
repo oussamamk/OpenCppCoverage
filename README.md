@@ -22,6 +22,41 @@ This fork continues from `0.9.9.0` with:
 * Third-party libraries (x86, x64 and `arm64-windows`) ship in the `ThirdParty.1.5.0` NuGet package, hosted in the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) repository (the same pattern the upstream project used for its `1.4.0` package) and installed by `InstallThirdPartyLibraries.ps1`.
 * Breakpoints use the 4-byte `BRK #0xF000` encoding and the ARM64 PC-adjustment semantics (the breakpoint exception reports the PC at the continuation address), mirroring x64's `--Rip` handling.
 * `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
+* `CreateInstallers.py` builds per-arch Inno Setup installers (`OpenCppCoverageSetup-<arch>-0.9.9.0.exe`) from that layout.
+
+### Build procedure from scratch (any machine)
+
+Prerequisites:
+* Visual Studio 2022 with the C++ toolset (the DIA SDK ships with VS).
+* [Inno Setup 6](https://jrsoftware.org/isinfo.php) for the installers only: `winget install JRSoftware.InnoSetup`.
+* Internet access on the first run: the third-party NuGet package (~500 MB) and the per-arch `vc_redist` binaries are downloaded once and cached.
+
+One-shot deps + build + package (downloads the `ThirdParty.1.5.0` NuGet package from the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) release, builds, auto-retries transient PCH failures on memory-constrained machines, and assembles the `NewRelease` layout):
+
+```powershell
+.\BuildEnvironment.ps1 -Configuration Release -Platforms x64,ARM64 -Package
+```
+
+Add `-Platforms x86,x64,ARM64` to build all three architectures. Run the same script again after a fresh clone on any machine — it skips what is already installed.
+
+Building Inno Setup installers from the assembled layout (requires Inno Setup 6, `ISCC.exe` is auto-detected; the first run downloads `vc_redist.x86/x64/arm64.exe` from `aka.ms` and caches them in `NewRelease\Installers\`):
+
+```powershell
+python CreateInstallers.py --release-root .\NewRelease
+```
+
+Outputs: `NewRelease\Installers\OpenCppCoverageSetup-{x86,x64,ARM64}-0.9.9.0.exe`. Each installer carries its arch's runtime files, the original wizard images/icon, a silent `vc_redist.<arch>` install, the `Plugins\Exporter` directory and an optional "add to PATH" task — the same layout as the original upstream setup.
+
+Manual equivalent (what the scripts automate):
+
+```powershell
+.\InstallThirdPartyLibraries.ps1                     # deps once per clone
+msbuild CppCoverage.sln /m /p:Configuration=Release /p:Platform=Win32
+msbuild CppCoverage.sln /m /p:Configuration=Release /p:Platform=x64
+msbuild CppCoverage.sln /m /p:Configuration=Release /p:Platform=ARM64
+cmd /c "CreateRelease.bat < NUL"                     # NewRelease\<arch>\{Binaries,Pdb}
+python CreateInstallers.py --release-root .\NewRelease
+```
 
 ---------------------
 ## Original project status (upstream)
