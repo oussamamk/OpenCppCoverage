@@ -58,6 +58,50 @@ if (Test-Path $InstalledMarker) {
     if ($LASTEXITCODE -ne 0) { throw "nuget install failed" }
 }
 
+# The 1.5.0 nupkg lacks arm64 Poco Foundation headers/libs (TestHelper includes
+# Poco/Process.h; the x86/x64 trees carry Poco from 1.4.0, the arm64 tree was
+# assembled without it). Merge the subset from a local vcpkg arm64 install if
+# one exists; without it ARM64 builds of TestHelper/TestCoverageConsole fail.
+$PocoMarker = "$scriptFolder\packages\$NuGetId.$NuGetVersion\installed\arm64-windows\include\Poco"
+if (-Not (Test-Path $PocoMarker)) {
+    $vcpkgPoco = 'C:\tools\vcpkg\installed\arm64-windows'
+    if (Test-Path "$vcpkgPoco\include\Poco" -PathType Container) {
+        Write-Host "Merging arm64 Poco Foundation subset from $vcpkgPoco (not in the 1.5.0 nupkg)..."
+        $dst = "$scriptFolder\packages\$NuGetId.$NuGetVersion\installed\arm64-windows"
+        $merges = @(
+            @{ From = "$vcpkgPoco\include\Poco";            To = "$dst\include\Poco" }
+            @{ From = "$vcpkgPoco\lib\PocoFoundation.lib";  To = "$dst\lib\PocoFoundation.lib" }
+            @{ From = "$vcpkgPoco\debug\lib\PocoFoundationd.lib"; To = "$dst\debug\lib\PocoFoundationd.lib" }
+            @{ From = "$vcpkgPoco\share\poco";              To = "$dst\share\poco" }
+        )
+        foreach ($f in @('PocoFoundation.dll', 'PocoFoundation.pdb', 'pcre2-8.dll', 'pcre2-16.dll',
+                         'pcre2-32.dll', 'pcre2-posix.dll', 'utf8proc.dll')) {
+            $merges += @{ From = "$vcpkgPoco\bin\$f"; To = "$dst\bin\$f" }
+        }
+        foreach ($f in @('PocoFoundationd.dll', 'PocoFoundationd.pdb', 'pcre2-8d.dll', 'pcre2-16d.dll',
+                         'pcre2-32d.dll', 'pcre2-posixd.dll', 'utf8proc.dll')) {
+            $merges += @{ From = "$vcpkgPoco\debug\bin\$f"; To = "$dst\debug\bin\$f" }
+        }
+        foreach ($m in $merges) {
+            if (-Not (Test-Path $m.From)) { continue }   # optional piece (e.g. pcre2 variant)
+            if (Test-Path $m.From -PathType Container) {
+                Copy-Item $m.From $m.To -Recurse -Force
+            } else {
+                New-Item -ItemType Directory -Force -Path (Split-Path $m.To) | Out-Null
+                Copy-Item $m.From $m.To -Force
+            }
+        }
+        Write-Host "  arm64 Poco merged."
+    } else {
+        Write-Warning @"
+arm64 Poco is missing from the installed package (needed to build TestHelper/
+TestCoverageConsole for ARM64). Install it into a local vcpkg first:
+    vcpkg install poco:arm64-windows
+so that $vcpkgPoco\include\Poco exists, then rerun this script.
+"@
+    }
+}
+
 # The 1.5.0 nupkg lacks arm64 gmock.lib/gmockd.lib under lib\manual-link (the ARM64 GTest
 # property sheets link gmock from there). Copy them from lib\ root if they are missing.
 if (Test-Path "$scriptFolder\packages\$NuGetId.$NuGetVersion\installed\arm64-windows\lib\gmock.lib" -PathType Leaf) {
