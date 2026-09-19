@@ -98,14 +98,31 @@ rem install them explicitly so they never depend on transitive luck.
 .\vcpkg install boost-uuid:x64-windows boost-uuid:x86-windows
 .\vcpkg install boost-locale:x64-windows boost-locale:x86-windows
 .\vcpkg install boost-iostreams:x64-windows boost-iostreams:x86-windows
-  
+
+rem ---------------------------------------------------------------------------
+rem arm64-windows part 1 (PINNED vcpkg): protobuf/gtest/ctemplate - same
+rem provenance as the shipped package, which built them here too; modern
+rem vcpkg would give protobuf 6.x with abseil, not 3.11.2. The ctemplate
+rem ARM64 UNALIGNED_LOAD32 patch is wired into the port first.
+rem ---------------------------------------------------------------------------
+IF EXIST ports\ctemplate\fix-arm64-macros.patch GOTO CTEMPLATE_PATCHED
+copy /y "%~dp0Build\Dependencies\ctemplate-fix-arm64-macros.patch" ports\ctemplate\fix-arm64-macros.patch
+rem wire it into the port: the pinned vcpkg_from_github takes PATCHES as a
+rem keyword arg; insert the PATCHES line after HEAD_REF (idempotent script)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\wire-ctemplate-arm64-patch.ps1" -PortDir "ports\ctemplate"
+:CTEMPLATE_PATCHED
+findstr /c:"fix-arm64-macros" ports\ctemplate\portfile.cmake >nul
+IF ERRORLEVEL 1 (echo ERROR: ctemplate arm64 patch not wired into portfile.cmake & exit /b 1)
+
+.\vcpkg install protobuf:arm64-windows gtest:arm64-windows ctemplate:arm64-windows
+
 .\vcpkg export ^
 	zlib:x64-windows zlib:x86-windows ^
 	pcre:x64-windows pcre:x86-windows ^
 	poco:x64-windows poco:x86-windows ^
-	protobuf:x64-windows protobuf:x86-windows ^
-	gtest:x64-windows gtest:x86-windows ^
-	ctemplate:x64-windows ctemplate:x86-windows ^
+	protobuf:x64-windows protobuf:x86-windows protobuf:arm64-windows ^
+	gtest:x64-windows gtest:x86-windows gtest:arm64-windows ^
+	ctemplate:x64-windows ctemplate:x86-windows ctemplate:arm64-windows ^
 	boost-optional:x64-windows boost-optional:x86-windows ^
 	boost-filesystem:x64-windows boost-filesystem:x86-windows ^
 	boost-algorithm:x64-windows boost-algorithm:x86-windows ^
@@ -122,8 +139,8 @@ rem install them explicitly so they never depend on transitive luck.
 	--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
 
 rem ---------------------------------------------------------------------------
-rem arm64-windows: modern vcpkg (compiled boost 1.92 vc143 + protobuf/gtest/
-rem ctemplate 3.11.2/2019-10-09/2017-06-23 to match the pinned instance)
+rem arm64-windows part 2: MODERN vcpkg for compiled boost (the pinned 2020
+rem b2 engine cannot build boost on arm64 with MSVC 14.4x) + zlib 1.3.x
 rem ---------------------------------------------------------------------------
 cd ..
 IF EXIST vcpkg-modern GOTO MODERN_EXISTS
@@ -138,18 +155,10 @@ IF EXIST vcpkg.exe GOTO MODERN_VCPKG_EXISTS
 	IF NOT EXIST vcpkg.exe (echo ERROR: modern vcpkg bootstrap failed & exit /b 1)
 :MODERN_VCPKG_EXISTS
 
-rem ctemplate ARM64 UNALIGNED_LOAD32 patch: applied to the port before install
-IF EXIST ports\ctemplate\fix-arm64-macros.patch GOTO CTEMPLATE_PATCHED
-copy /y "%~dp0Build\Dependencies\ctemplate-fix-arm64-macros.patch" ports\ctemplate\fix-arm64-macros.patch
-rem add it to the port's patch list
-powershell -NoProfile -Command "(Get-Content ports\ctemplate\portfile.cmake) -replace 'PATCHES', 'PATCHES fix-arm64-macros.patch' | Set-Content ports\ctemplate\portfile.cmake"
-:CTEMPLATE_PATCHED
-
-rem zlib is PocoFoundation's and boost-iostreams' runtime dep; install it
-rem explicitly so it never depends on transitive luck. (pcre is not needed on
-rem arm64 - Poco arm64 comes from a separate merge, not this instance.)
+rem zlib is boost-iostreams' runtime dep; install it explicitly so it never
+rem depends on transitive luck. (pcre is not needed on arm64 - Poco arm64
+rem comes from a separate merge, not this instance.)
 .\vcpkg install zlib:arm64-windows
-.\vcpkg install protobuf:arm64-windows gtest:arm64-windows ctemplate:arm64-windows
 .\vcpkg install boost-optional:arm64-windows boost-filesystem:arm64-windows
 .\vcpkg install boost-algorithm:arm64-windows boost-container:arm64-windows
 .\vcpkg install boost-program-options:arm64-windows boost-regex:arm64-windows
@@ -160,9 +169,6 @@ rem arm64 - Poco arm64 comes from a separate merge, not this instance.)
 
 .\vcpkg export ^
 	zlib:arm64-windows ^
-	protobuf:arm64-windows ^
-	gtest:arm64-windows ^
-	ctemplate:arm64-windows ^
 	boost-optional:arm64-windows ^
 	boost-filesystem:arm64-windows ^
 	boost-algorithm:arm64-windows ^
