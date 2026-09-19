@@ -35,6 +35,8 @@ xcopy /y %X86%\boost_log-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_iostreams.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_program_options-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_thread-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\bz2.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\zstd.dll NewRelease\x86\Binaries\
 
 mkdir NewRelease\x86\Pdb
 xcopy /y %X86%\OpenCppCoverage.pdb NewRelease\x86\Pdb\
@@ -68,6 +70,8 @@ xcopy /y %X64%\boost_log-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_iostreams.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_program_options-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_thread-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\bz2.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\zstd.dll NewRelease\x64\Binaries\
 
 mkdir NewRelease\x64\Pdb
 xcopy /y %X64%\OpenCppCoverage.pdb NewRelease\x64\Pdb\
@@ -95,6 +99,11 @@ xcopy /y %A64%\msdia140.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\libctemplate.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\libprotobuf.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\libprotobuf-lite.dll NewRelease\ARM64\Binaries\
+rem modern-vcpkg boost_iostreams is built against external zlib/bzip2/lzma/zstd
+xcopy /y %A64%\z.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\bz2.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\liblzma.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\zstd.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_filesystem-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_locale-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_log-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
