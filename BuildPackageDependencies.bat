@@ -43,6 +43,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\rep
 rem ---------------------------------------------------------------------------
 rem Export 1: x86 + x64 from the pinned vcpkg
 rem ---------------------------------------------------------------------------
+rem delete any previous nupkg first: vcpkg export refuses to overwrite... it
+rem does overwrite, but a FAILED export leaves the old file behind and the
+rem IF NOT EXIST below would pass on stale output.
+IF EXIST ThirdParty.1.5.0.nupkg del ThirdParty.1.5.0.nupkg
 .\vcpkg export ^
 	zlib:x64-windows zlib:x86-windows ^
 	pcre:x64-windows pcre:x86-windows ^
@@ -74,6 +78,7 @@ rem Export 2: arm64 boost+zlib from the modern vcpkg
 rem ---------------------------------------------------------------------------
 cd ..\vcpkg-modern
 
+IF EXIST ThirdPartyArm64.1.5.0.nupkg del ThirdPartyArm64.1.5.0.nupkg
 .\vcpkg export ^
 	zlib:arm64-windows ^
 	boost-optional:arm64-windows ^
