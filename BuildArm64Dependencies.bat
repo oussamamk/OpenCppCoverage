@@ -1,91 +1,41 @@
 @echo off
 setlocal
+cd /d "%~dp0"
 
 rem ============================================================================
 rem Builds the ARM64-windows part of the ThirdParty dependency package.
-rem Split out of BuildThirdPartyDependencies.bat so x86/x64 and arm64 runs are
-rem independent (the full package takes hours; failing late in arm64 should
-rem not cost an x86/x64 rerun).
+rem
+rem One of four independent scripts (BuildThirdPartyDependencies.bat runs all
+rem four in sequence):
+rem   Buildx64Dependencies.bat      - pinned vcpkg setup (builds vcpkg.exe) + x64 ports
+rem   Buildx86Dependencies.bat      - x86 ports
+rem   BuildArm64Dependencies.bat    - this script: arm64 ports (pinned
+rem                                   protobuf/gtest/ctemplate, modern boost+zlib)
+rem   BuildPackageDependencies.bat  - both vcpkg exports + final nupkg assembly
 rem
 rem Two vcpkg instances:
-rem   - vcpkg\        pinned 2020 (ed0df8e), shared with the x86/x64 bat:
+rem   - vcpkg\        pinned 2020 (ed0df8e), shared with the x64/x86 scripts:
 rem                   arm64 protobuf 3.11.2 / gtest 2019-10-09 / ctemplate
 rem                   2017-06-23 (ctemplate needs the ARM64 UNALIGNED_LOAD32
 rem                   patch, wired automatically every run - the pinned git
 rem                   checkout resets the portfile).
 rem   - vcpkg-modern\ current master: arm64 compiled boost 1.92 vc143 + zlib
 rem                   (the pinned 2020 b2 engine cannot build boost on arm64).
-rem Exports land next to the x86/x64 ones and
-rem Build\Dependencies\assemble-thirdparty-1.5.0.ps1 merges everything into
-rem packages\ThirdParty.1.5.0\ + ThirdParty.1.5.0.nupkg.
 rem Poco arm64 is NOT produced here (needs its own modern-vcpkg port set);
 rem InstallThirdPartyLibraries.ps1 merges a Poco arm64 subset after install.
-rem
-rem Requires the pinned vcpkg from the x86/x64 bat (vcpkg\vcpkg.exe with the
-rem VS2022 fixes) - run BuildThirdPartyDependencies.bat once first, or this
-rem script clones+fixes it automatically.
 rem ============================================================================
 
 SET ROOT_FOLDER=%~dp0/Build/ThirdParty/
 
-IF EXIST "%ROOT_FOLDER%" GOTO THIRD_PARTY_EXISTS
-mkdir "%ROOT_FOLDER%"
-:THIRD_PARTY_EXISTS
+IF NOT EXIST "%ROOT_FOLDER%vcpkg\vcpkg.exe" (
+	echo ERROR: %ROOT_FOLDER%vcpkg\vcpkg.exe missing - run Buildx64Dependencies.bat first ^(it sets up pinned vcpkg with the VS2022 fixes^) & exit /b 1
+)
 
 cd Build/ThirdParty
 
-IF EXIST vcpkg GOTO REPO_EXISTS
-git clone https://github.com/Microsoft/vcpkg.git
-:REPO_EXISTS
-
-cd vcpkg
-git fetch
-git checkout ed0df8ecc4ed7e755ea03e18aaf285fd9b4b4a74 .
-
-IF NOT EXIST vcpkg.exe (
-	echo ERROR: pinned vcpkg.exe missing - run BuildThirdPartyDependencies.bat first ^(it builds vcpkg.exe with the VS2022 fixes^) & exit /b 1
-)
-
-rem re-apply the VS2022 fixes every run (idempotent; the git checkout above
-rem resets the patched files):
-rem   - toolset detection in the vcpkg.exe source only matters for rebuilds
-rem   - generator map + cmake repoint matter for non-PREFER_NINJA ports
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-vcpkg-vs2022-generator.ps1" -VcpkgRoot "."
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\repoint-vcpkg-cmake.ps1" -VcpkgRoot "."
-
-rem If the x86/x64 export nupkg is missing (its bat not run yet on this
-rem pass), mint it here so the assembly has both exports. Skipped instantly
-rem when BuildThirdPartyDependencies.bat already produced it.
-IF NOT EXIST ThirdParty.1.5.0.nupkg (
-	echo x86/x64 export nupkg missing - running the x86/x64 export now ...
-	.\vcpkg export ^
-		zlib:x64-windows zlib:x86-windows ^
-		pcre:x64-windows pcre:x86-windows ^
-		poco:x64-windows poco:x86-windows ^
-		protobuf:x64-windows protobuf:x86-windows ^
-		gtest:x64-windows gtest:x86-windows ^
-		ctemplate:x64-windows ctemplate:x86-windows ^
-		boost-optional:x64-windows boost-optional:x86-windows ^
-		boost-filesystem:x64-windows boost-filesystem:x86-windows ^
-		boost-algorithm:x64-windows boost-algorithm:x86-windows ^
-		boost-container:x64-windows boost-container:x86-windows ^
-		boost-program-options:x64-windows boost-program-options:x86-windows ^
-		boost-regex:x64-windows boost-regex:x86-windows ^
-		boost-range:x64-windows boost-range:x86-windows ^
-		boost-log:x64-windows boost-log:x86-windows ^
-		boost-property-tree:x64-windows boost-property-tree:x86-windows ^
-		boost-spirit:x64-windows boost-spirit:x86-windows ^
-		boost-uuid:x64-windows boost-uuid:x86-windows ^
-		boost-locale:x64-windows boost-locale:x86-windows ^
-		boost-iostreams:x64-windows boost-iostreams:x86-windows ^
-		--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
-)
-
-rem prefetch jom (openssl) - same file as the x86/x64 bat, shared cache
-IF NOT EXIST downloads\jom_1_1_3.zip (
-	curl -fL -o downloads\jom_1_1_3.zip "https://qt.mirrorservice.org/official_releases/jom/jom_1_1_3.zip"
-	IF ERRORLEVEL 1 (echo WARNING: jom prefetch failed - openssl build may hit download.qt.io flakiness)
-)
+IF EXIST vcpkg-modern GOTO MODERN_EXISTS
+git clone https://github.com/Microsoft/vcpkg.git vcpkg-modern
+:MODERN_EXISTS
 
 rem ---------------------------------------------------------------------------
 rem arm64 part 1 (PINNED vcpkg): protobuf/gtest/ctemplate - same provenance as
@@ -93,6 +43,13 @@ rem the shipped package; modern vcpkg would give protobuf 6.x with abseil.
 rem The ctemplate ARM64 UNALIGNED_LOAD32 patch is re-wired every run (the git
 rem checkout above resets the portfile).
 rem ---------------------------------------------------------------------------
+cd vcpkg
+rem re-apply the VS2022 fixes every run (idempotent; the pinned git checkout
+rem in the x64 script resets the patched files):
+rem   - generator map + cmake repoint matter for non-PREFER_NINJA ports
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-vcpkg-vs2022-generator.ps1" -VcpkgRoot "."
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\repoint-vcpkg-cmake.ps1" -VcpkgRoot "."
+
 copy /y "%~dp0Build\Dependencies\ctemplate-fix-arm64-macros.patch" ports\ctemplate\fix-arm64-macros.patch
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\wire-ctemplate-arm64-patch.ps1" -PortDir "ports\ctemplate"
 findstr /c:"fix-arm64-macros" ports\ctemplate\portfile.cmake >nul
@@ -105,9 +62,6 @@ rem arm64 part 2: MODERN vcpkg for compiled boost (pinned b2 cannot build
 rem boost on arm64 with MSVC 14.4x) + zlib 1.3.x
 rem ---------------------------------------------------------------------------
 cd ..
-IF EXIST vcpkg-modern GOTO MODERN_EXISTS
-git clone https://github.com/Microsoft/vcpkg.git vcpkg-modern
-:MODERN_EXISTS
 cd vcpkg-modern
 git fetch
 git reset --hard origin/master
@@ -126,26 +80,5 @@ IF EXIST vcpkg.exe GOTO MODERN_VCPKG_EXISTS
 .\vcpkg install boost-uuid:arm64-windows boost-locale:arm64-windows
 .\vcpkg install boost-iostreams:arm64-windows
 
-.\vcpkg export ^
-	zlib:arm64-windows ^
-	boost-optional:arm64-windows ^
-	boost-filesystem:arm64-windows ^
-	boost-algorithm:arm64-windows ^
-	boost-container:arm64-windows ^
-	boost-program-options:arm64-windows ^
-	boost-regex:arm64-windows ^
-	boost-range:arm64-windows ^
-	boost-log:arm64-windows ^
-	boost-property-tree:arm64-windows ^
-	boost-spirit:arm64-windows ^
-	boost-uuid:arm64-windows ^
-	boost-locale:arm64-windows ^
-	boost-iostreams:arm64-windows ^
-	--nuget --nuget-id=ThirdPartyArm64 --nuget-version=1.5.0
-
-rem ---------------------------------------------------------------------------
-rem Assemble the final three-arch package into %ROOT_FOLDER%..\..\packages
-rem ---------------------------------------------------------------------------
-cd ..
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\assemble-thirdparty-1.5.0.ps1"
+echo arm64 dependencies done - run BuildPackageDependencies.bat next
+echo (or BuildThirdPartyDependencies.bat for all).

@@ -24,6 +24,20 @@ This fork continues from `0.9.9.0` with:
 * `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
 * `CreateInstallers.py` builds per-arch Inno Setup installers (`OpenCppCoverageSetup-<arch>-0.9.9.0.exe`) from that layout.
 
+### Rebuilding the ThirdParty dependency package (from scratch)
+
+The dependency package (`ThirdParty.1.5.0.nupkg`) can be rebuilt on any machine from the four scripts at the repo root — each runs independently, so you can trigger a single arch or resume after a failure without repeating the whole pipeline:
+
+```text
+Buildx64Dependencies.bat      1. pinned vcpkg setup (VS2022 fixes) + x64 ports
+Buildx86Dependencies.bat      2. x86 ports
+BuildArm64Dependencies.bat    3. arm64 ports (pinned protobuf/gtest/ctemplate +
+                                 modern boost+zlib)
+BuildPackageDependencies.bat  4. both vcpkg exports + final nupkg assembly
+```
+
+Each script reuses what the previous ones installed (reruns are fast), re-applies the idempotent VS2022 patches, and errors clearly if a prerequisite hasn't run. `BuildThirdPartyDependencies.bat` is the one-shot orchestrator calling all four in sequence. The final package lands in `packages\ThirdParty.1.5.0.nupkg` (~550 MB; the ~50 MB over upstream's lean 1.4.0 is legitimate VS2022 v143 PDB growth in the debug trees).
+
 ### Build procedure from scratch (any machine)
 
 Prerequisites:
