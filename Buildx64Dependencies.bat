@@ -88,30 +88,50 @@ IF NOT EXIST downloads\jom_1_1_3.zip (
 rem zlib and pcre are PocoFoundation's and boost-iostreams' runtime deps;
 rem install them explicitly so they never depend on transitive luck.
 .\vcpkg install zlib:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install pcre:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 rem boost-build (b2 1.72) detects the MSVC toolset version from the cl.exe
 rem path and only knows 14.1/14.2 - VS2022's 14.3x/14.4x falls through to
 rem VC6 and every boost link dies with "'/DLL' is not recognized". Teach b2
 rem the new toolsets right after boost-build installs, before any boost port.
 .\vcpkg install boost-build:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-b2-vs2022-toolset.ps1" -VcpkgRoot "."
 .\vcpkg install poco:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install protobuf:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install gtest:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install ctemplate:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-optional:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-filesystem:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-algorithm:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-container:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-program-options:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-regex:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-range:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-log:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-property-tree:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-spirit:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-uuid:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-locale:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-iostreams:x64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 
 echo x64 dependencies done - run Buildx86Dependencies.bat, BuildArm64Dependencies.bat
 echo and BuildPackageDependencies.bat next (or BuildThirdPartyDependencies.bat for all).

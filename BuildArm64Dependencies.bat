@@ -56,6 +56,7 @@ findstr /c:"fix-arm64-macros" ports\ctemplate\portfile.cmake >nul
 IF ERRORLEVEL 1 (echo ERROR: ctemplate arm64 patch not wired into portfile.cmake & exit /b 1)
 
 .\vcpkg install protobuf:arm64-windows gtest:arm64-windows ctemplate:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 
 rem ---------------------------------------------------------------------------
 rem arm64 part 2: MODERN vcpkg for compiled boost (pinned b2 cannot build
@@ -72,13 +73,21 @@ IF EXIST vcpkg.exe GOTO MODERN_VCPKG_EXISTS
 :MODERN_VCPKG_EXISTS
 
 .\vcpkg install zlib:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-optional:arm64-windows boost-filesystem:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-algorithm:arm64-windows boost-container:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-program-options:arm64-windows boost-regex:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-range:arm64-windows boost-log:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-property-tree:arm64-windows boost-spirit:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-uuid:arm64-windows boost-locale:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-iostreams:arm64-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 
 echo arm64 dependencies done - run BuildPackageDependencies.bat next
 echo (or BuildThirdPartyDependencies.bat for all).
