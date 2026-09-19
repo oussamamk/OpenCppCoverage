@@ -89,9 +89,21 @@ function Build-Platform {
     param([string]$Platform)
     $msbuild = Find-MsBuild
     Write-Host "==> msbuild $Configuration|$Platform"
-    # /m:1 avoids transient PCH C3859/C1076 heap failures on low-RAM machines.
-    & $msbuild CppCoverage.sln "/p:Configuration=$Configuration" "/p:Platform=$Platform" /m:1 /nologo /v:m
-    if ($LASTEXITCODE -ne 0) { throw "msbuild failed for $Platform" }
+    # /m:1 avoids most PCH C3859/C1076 heap failures on low-RAM machines; the
+    # remainder are transient (PCH virtual-memory contention during Release
+    # LTCG) and clear on a resumed retry, so try up to 4 times.
+    $exit = 1
+    foreach ($attempt in 1..4) {
+        & $msbuild CppCoverage.sln "/p:Configuration=$Configuration" "/p:Platform=$Platform" /m:1 /nologo /v:m
+        $exit = $LASTEXITCODE
+        if ($exit -eq 0) { break }
+        if ($exit -ne 0) {
+            Write-Warning "msbuild attempt $attempt failed for $Platform (exit $exit)."
+            Write-Host "    This is usually the transient PCH memory issue on low-RAM machines."
+            Write-Host "    Resuming (msbuild skips projects already built)..."
+        }
+    }
+    if ($exit -ne 0) { throw "msbuild failed for $Platform after 4 attempts" }
     Write-Host "==> $Platform build OK"
 }
 
