@@ -2,20 +2,24 @@
 setlocal
 
 rem ============================================================================
-rem Builds the ThirdParty dependency package for x86/x64 via the pinned vcpkg.
+rem Builds the ThirdParty dependency package for x86, x64 AND arm64-windows.
 rem
-rem NOTE (ARM64, 1.5.0+): this script CANNOT regenerate the full 1.5.0 package.
-rem The shipped ThirdParty.1.5.0.nupkg was assembled from:
-rem   - the official 1.4.0 nupkg (x86/x64 trees, copied byte-identical),
-rem   - an arm64-windows tree built with TWO vcpkg instances:
-rem       * pinned 2020 vcpkg (ed0df8e): protobuf/gtest/ctemplate (ctemplate
-rem         needs an ARM64 UNALIGNED_LOAD32 patch; vcpkg.exe itself must be
-rem         built manually with /p:PlatformToolset=v143 on VS2022),
-rem       - a modern vcpkg for compiled boost (the 2020 b2 engine fails on
-rem         arm64 with MSVC 14.4x),
-rem   - an arm64 Poco Foundation subset merged from a separate vcpkg install.
-rem Regenerating from scratch requires that process; prefer downloading the
-rem package from the fork's v1.5.0 GitHub release instead.
+rem Two vcpkg instances:
+rem   - vcpkg\       pinned 2020 (ed0df8e): x86/x64 trees (official 1.4.0
+rem                  provenance, boost 1.72 vc142) + arm64 protobuf/gtest/
+rem                  ctemplate (ctemplate needs the ARM64 UNALIGNED_LOAD32
+rem                  patch, applied automatically).
+rem   - vcpkg-modern current master: arm64 compiled boost (1.92 vc143) - the
+rem                  pinned 2020 b2 engine cannot build boost on arm64 with
+rem                  MSVC 14.4x.
+rem The final nupkg is assembled by merging both instances' exports.
+rem Poco arm64 is NOT produced here (needs its own modern-vcpkg port set);
+rem InstallThirdPartyLibraries.ps1 merges a Poco arm64 subset from a local
+rem vcpkg after install, or bake it into the nupkg afterwards (see README).
+rem
+rem VS2022-only machines: the pinned vcpkg bootstrap fails, so vcpkg.exe is
+rem built from toolsrc (v143 toolset) and its toolset detection is patched
+rem to recognize MSVC 14.3x/14.4x as v143. Both steps are automated below.
 rem ============================================================================
 
 SET ROOT_FOLDER=%~dp0/Build/ThirdParty/
@@ -111,4 +115,61 @@ IF NOT EXIST downloads\jom_1_1_3.zip (
 	boost-iostreams:x64-windows boost-iostreams:x86-windows ^
 	--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
 
-downloads\tools\nuget-4.6.2-windows\nuget.exe install ThirdParty -Source %ROOT_FOLDER%\vcpkg -OutputDirectory ..\..\..\packages
+rem ---------------------------------------------------------------------------
+rem arm64-windows: modern vcpkg (compiled boost 1.92 vc143 + protobuf/gtest/
+rem ctemplate 3.11.2/2019-10-09/2017-06-23 to match the pinned instance)
+rem ---------------------------------------------------------------------------
+cd ..
+IF EXIST vcpkg-modern GOTO MODERN_EXISTS
+git clone https://github.com/Microsoft/vcpkg.git vcpkg-modern
+:MODERN_EXISTS
+cd vcpkg-modern
+git fetch
+git reset --hard origin/master
+
+IF EXIST vcpkg.exe GOTO MODERN_VCPKG_EXISTS
+	call .\bootstrap-vcpkg.bat
+	IF NOT EXIST vcpkg.exe (echo ERROR: modern vcpkg bootstrap failed & exit /b 1)
+:MODERN_VCPKG_EXISTS
+
+rem ctemplate ARM64 UNALIGNED_LOAD32 patch: applied to the port before install
+IF EXIST ports\ctemplate\fix-arm64-macros.patch GOTO CTEMPLATE_PATCHED
+copy /y "%~dp0Build\Dependencies\ctemplate-fix-arm64-macros.patch" ports\ctemplate\fix-arm64-macros.patch
+rem add it to the port's patch list
+powershell -NoProfile -Command "(Get-Content ports\ctemplate\portfile.cmake) -replace 'PATCHES', 'PATCHES fix-arm64-macros.patch' | Set-Content ports\ctemplate\portfile.cmake"
+:CTEMPLATE_PATCHED
+
+.\vcpkg install protobuf:arm64-windows gtest:arm64-windows ctemplate:arm64-windows
+.\vcpkg install boost-optional:arm64-windows boost-filesystem:arm64-windows
+.\vcpkg install boost-algorithm:arm64-windows boost-container:arm64-windows
+.\vcpkg install boost-program-options:arm64-windows boost-regex:arm64-windows
+.\vcpkg install boost-range:arm64-windows boost-log:arm64-windows
+.\vcpkg install boost-property-tree:arm64-windows boost-spirit:arm64-windows
+.\vcpkg install boost-uuid:arm64-windows boost-locale:arm64-windows
+.\vcpkg install boost-iostreams:arm64-windows
+
+.\vcpkg export ^
+	protobuf:arm64-windows ^
+	gtest:arm64-windows ^
+	ctemplate:arm64-windows ^
+	boost-optional:arm64-windows ^
+	boost-filesystem:arm64-windows ^
+	boost-algorithm:arm64-windows ^
+	boost-container:arm64-windows ^
+	boost-program-options:arm64-windows ^
+	boost-regex:arm64-windows ^
+	boost-range:arm64-windows ^
+	boost-log:arm64-windows ^
+	boost-property-tree:arm64-windows ^
+	boost-spirit:arm64-windows ^
+	boost-uuid:arm64-windows ^
+	boost-locale:arm64-windows ^
+	boost-iostreams:arm64-windows ^
+	--nuget --nuget-id=ThirdPartyArm64 --nuget-version=1.5.0
+
+rem ---------------------------------------------------------------------------
+rem Assemble the final three-arch package into ..\..\..\packages
+rem ---------------------------------------------------------------------------
+cd ..
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\assemble-thirdparty-1.5.0.ps1"

@@ -1,0 +1,14 @@
+diff --git a/src/base/macros.h b/src/base/macros.h
+index 1111111..2222222 100644
+--- a/src/base/macros.h
++++ b/src/base/macros.h
+@@ -55,6 +55,9 @@
+ #if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+   // We know they allow unaligned memory access and are little-endian
+ # define UNALIGNED_LOAD32(_p) (*reinterpret_cast<const uint32_t*>(_p))
++#elif defined(_M_ARM64) || defined(__aarch64__)
++  // ARM64 allows unaligned memory access and is little-endian
++  #define UNALIGNED_LOAD32(_p) (*reinterpret_cast<const uint32_t*>(_p))
+ #elif defined(__ppc__) || defined(__ppc64__)
+   // We know they allow unaligned memory access and are big-endian
+ # define UNALIGNED_LOAD32(_p) BSWAP32(*reinterpret_cast<const uint32_t*>(_p))
