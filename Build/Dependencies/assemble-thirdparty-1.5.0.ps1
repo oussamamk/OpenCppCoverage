@@ -70,6 +70,23 @@ $metadata = Expand-Into $oldNupkg 'ThirdParty.nuspec' $installed
 $psmdcp = Expand-Into $oldNupkg 'package/*' $installed
 Write-Host "targets: $targets, scripts: $scripts, metadata: $metadata + $psmdcp"
 
+# OPC standard parts ([Content_Types].xml, _rels/.rels) live at the zip root.
+# Cannot go through Expand-Into: its -like filter would read [Content_Types]
+# as a wildcard character class, so match the literal names instead.
+$opc = 0
+$zip2 = [System.IO.Compression.ZipFile]::OpenRead($oldNupkg)
+try {
+    foreach ($entry in $zip2.Entries) {
+        if ($entry.FullName -ne '[Content_Types].xml' -and $entry.FullName -ne '_rels/.rels') { continue }
+        $target = Join-Path $installed $entry.FullName
+        $tdir = Split-Path $target
+        if (-not (Test-Path $tdir)) { New-Item -ItemType Directory -Force -Path $tdir | Out-Null }
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
+        $opc++
+    }
+} finally { $zip2.Dispose() }
+Write-Host "OPC parts: $opc"
+
 # rezip the assembled tree as ThirdParty.1.5.0.nupkg next to it
 $outNupkg = Join-Path $outRoot 'ThirdParty.1.5.0.nupkg'
 if (Test-Path $outNupkg) { Remove-Item $outNupkg -Force }
