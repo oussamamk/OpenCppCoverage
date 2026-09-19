@@ -92,6 +92,12 @@ rem zlib and pcre are PocoFoundation's and boost-iostreams' runtime deps;
 rem install them explicitly so they never depend on transitive luck.
 .\vcpkg install zlib:x64-windows zlib:x86-windows
 .\vcpkg install pcre:x64-windows pcre:x86-windows
+rem boost-build (b2 1.72) detects the MSVC toolset version from the cl.exe
+rem path and only knows 14.1/14.2 - VS2022's 14.3x/14.4x falls through to
+rem VC6 and every boost link dies with "'/DLL' is not recognized". Teach b2
+rem the new toolsets right after boost-build installs, before any boost port.
+.\vcpkg install boost-build:x64-windows boost-build:x86-windows
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-b2-vs2022-toolset.ps1" -VcpkgRoot "."
 .\vcpkg install poco:x64-windows poco:x86-windows
 .\vcpkg install protobuf:x64-windows protobuf:x86-windows
 .\vcpkg install gtest:x64-windows gtest:x86-windows
