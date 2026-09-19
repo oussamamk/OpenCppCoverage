@@ -35,11 +35,18 @@ git fetch
 git checkout ed0df8ecc4ed7e755ea03e18aaf285fd9b4b4a74 .
 
 IF EXIST vcpkg.exe GOTO VCPKG_EXISTS
+rem The pinned-2020 vcpkg needs two fixes on a VS2022-only machine:
+rem 1) bootstrap.ps1 only knows VS2015/2017/2019 and throws -> build vcpkg.exe
+rem    from toolsrc with the v143 toolset (MSBuild via vswhere, installed SDK).
+rem 2) its toolset detection skips MSVC 14.3x/14.4x ("unknown toolset minor
+rem    version") -> patch visualstudio.cpp to map 14.3x/14.4x to v143.
+rem 2) must be applied BEFORE 1) rebuilds the exe.
+set "VS_SRC=toolsrc\src\vcpkg\visualstudio.cpp"
+copy /y "%VS_SRC%" "%VS_SRC%.orig" >nul
+python "%~dp0Build\Dependencies\vcpkg-visualstudio-toolset-patch.py"
+	rem 1) try bootstrap first (works when VS2015/2017/2019 exists)
 	call .\bootstrap-vcpkg.bat
 	IF EXIST vcpkg.exe GOTO VCPKG_EXISTS
-	rem The pinned-2020 bootstrap only knows VS2015/2017/2019; on a VS2022-only
-	rem machine it throws "Could not find MSBuild version with C++ support".
-	rem Build vcpkg.exe from toolsrc with the v143 toolset instead.
 	echo bootstrap failed - building vcpkg.exe from toolsrc with PlatformToolset=v143 ...
 	rem locate msbuild via vswhere
 	set "MSBUILD="
