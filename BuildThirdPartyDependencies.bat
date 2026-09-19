@@ -68,6 +68,17 @@ python "%~dp0Build\Dependencies\vcpkg-visualstudio-toolset-patch.py"
 	copy /y toolsrc\msbuild.x64.release\vcpkg.exe vcpkg.exe
 :VCPKG_EXISTS
 
+rem the pinned generator map (vcpkg_configure_cmake.cmake) has no v143 ->
+rem "Visual Studio 17 2022" entries, so any port built WITHOUT PREFER_NINJA
+rem (poco) dies with "Unable to determine appropriate generator". Patch it.
+rem (Our toolset patch above makes vcpkg pick v143 as preferred toolset.)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\patch-vcpkg-vs2022-generator.ps1" -VcpkgRoot "."
+
+rem the pinned vcpkg acquires cmake 3.14.0, which predates VS2022 and cannot
+rem create the "Visual Studio 17 2022" generator ("Could not create named
+rem generator"). Copy VS2022's cmake 3.31 over the acquired 3.14 tool.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\repoint-vcpkg-cmake.ps1" -VcpkgRoot "."
+
 rem prefetch jom (needed by openssl-windows): download.qt.io flakes often;
 rem qt.mirrorservice.org hosts the same file (same SHA512, no download.qt.io
 rem prefix in the path). vcpkg checks downloads\ first, so a cache hit makes
