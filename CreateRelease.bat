@@ -1,7 +1,7 @@
 @echo off
 rem Assemble the release layout for all architectures.
-rem Prerequisites: build Release for x86, x64 and ARM64 first:
-rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=x86
+rem Prerequisites: build Release for Win32, x64 and ARM64 first:
+rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=Win32
 rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=x64
 rem   msbuild CppCoverage.sln /p:Configuration=Release /p:Platform=ARM64
 rem (TestCppCli is excluded from ARM64 configs by the solution.)
@@ -11,9 +11,9 @@ setlocal
 set ERROR=0
 
 rem ---------------------------------------------------------------------------
-rem x86 (source dir: x86\Release; upstream convention)
+rem x86 (source dir: Release\ -- the Win32 build lands in the solution root)
 rem ---------------------------------------------------------------------------
-set X86=x86\Release
+set X86=Release
 if not exist %X86%\OpenCppCoverage.exe (echo MISSING %X86%& set ERROR=1& goto :eof)
 
 mkdir NewRelease\x86\Binaries
