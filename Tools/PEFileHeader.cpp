@@ -46,6 +46,15 @@ namespace Tools
 #endif
 		        )
 		{
+#ifdef _M_ARM64
+			// An ARM64 build debugs ARM64 targets only: the target would run
+			// emulated x64 code while the debugger patches 4-byte ARM64
+			// breakpoints into it. Reject x64 targets with a clear message.
+			if (machine == IMAGE_FILE_MACHINE_AMD64)
+				THROW(L"PE file header machine is not supported: " +
+				      std::to_wstring(machine) +
+				      L" (this ARM64 build covers ARM64 targets only; use an x64 build for x64 targets)");
+#endif
 			// ARM64 Windows images are PE32+ (same optional header as AMD64).
 			auto ntHeader64 = ReadStructInProcessMemory<IMAGE_NT_HEADERS64>(
 			    hProcess, baseOfImage + dosHeader->e_lfanew);
