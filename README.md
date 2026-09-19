@@ -19,7 +19,7 @@ This fork continues from `0.9.9.0` with:
 ### Building for ARM64
 
 * Build with the `ARM64` platform (`msbuild CppCoverage.sln /p:Configuration=Debug /p:Platform=ARM64`). The C++/CLI test project (`TestCppCli`) is excluded from ARM64 configs — classic C++/CLI has no ARM64 target — and CI-style gtest filters still apply.
-* Third-party libraries for `arm64-windows` ship in the `ThirdParty.1.5.0` NuGet package, downloaded from this fork's [releases](../../releases) by `InstallThirdPartyLibraries.ps1`.
+* Third-party libraries (x86, x64 and `arm64-windows`) ship in the `ThirdParty.1.5.0` NuGet package, hosted in the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) repository (the same pattern the upstream project used for its `1.4.0` package) and installed by `InstallThirdPartyLibraries.ps1`.
 * Breakpoints use the 4-byte `BRK #0xF000` encoding and the ARM64 PC-adjustment semantics (the breakpoint exception reports the PC at the continuation address), mirroring x64's `--Rip` handling.
 * `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
 

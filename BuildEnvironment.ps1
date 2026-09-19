@@ -30,7 +30,7 @@ $NuGetId = 'ThirdParty'
 $NuGetVersion = '1.5.0'
 $PackagesDir = Join-Path $repoRoot 'packages'
 $InstalledMarker = Join-Path $PackagesDir "$NuGetId.$NuGetVersion\build\native\$NuGetId.targets"
-$ForkReleaseUrl = "https://github.com/oussamamk/OpenCppCoverage/releases/download/v$NuGetVersion/$NuGetId.$NuGetVersion.nupkg"
+$ForkReleaseUrl = "https://github.com/oussamamk/OpenCppCoverageThirdParty/releases/download/$NuGetVersion/$NuGetId.$NuGetVersion.nupkg"
 
 function Ensure-NuGet {
     $nuget = Join-Path $repoRoot 'nuget.exe'

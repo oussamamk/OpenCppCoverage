@@ -13,7 +13,7 @@ $NuGetVersion = '1.5.0'
 $PackagesDir = Join-Path $scriptFolder 'packages'
 $Nupkg = Join-Path $scriptFolder "$NuGetId.$NuGetVersion.nupkg"
 $InstalledMarker = Join-Path $PackagesDir "$NuGetId.$NuGetVersion\build\native\$NuGetId.targets"
-$ForkReleaseUrl = "https://github.com/oussamamk/OpenCppCoverage/releases/download/v$NuGetVersion/$NuGetId.$NuGetVersion.nupkg"
+$ForkReleaseUrl = "https://github.com/oussamamk/OpenCppCoverageThirdParty/releases/download/$NuGetVersion/$NuGetId.$NuGetVersion.nupkg"
 
 if (Test-Path $InstalledMarker) {
     Write-Host "$NuGetId.$NuGetVersion already installed in packages\ - nothing to do."
