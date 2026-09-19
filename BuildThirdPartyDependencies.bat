@@ -1,6 +1,23 @@
 @echo off
 setlocal
 
+rem ============================================================================
+rem Builds the ThirdParty dependency package for x86/x64 via the pinned vcpkg.
+rem
+rem NOTE (ARM64, 1.5.0+): this script CANNOT regenerate the full 1.5.0 package.
+rem The shipped ThirdParty.1.5.0.nupkg was assembled from:
+rem   - the official 1.4.0 nupkg (x86/x64 trees, copied byte-identical),
+rem   - an arm64-windows tree built with TWO vcpkg instances:
+rem       * pinned 2020 vcpkg (ed0df8e): protobuf/gtest/ctemplate (ctemplate
+rem         needs an ARM64 UNALIGNED_LOAD32 patch; vcpkg.exe itself must be
+rem         built manually with /p:PlatformToolset=v143 on VS2022),
+rem       - a modern vcpkg for compiled boost (the 2020 b2 engine fails on
+rem         arm64 with MSVC 14.4x),
+rem   - an arm64 Poco Foundation subset merged from a separate vcpkg install.
+rem Regenerating from scratch requires that process; prefer downloading the
+rem package from the fork's v1.5.0 GitHub release instead.
+rem ============================================================================
+
 SET ROOT_FOLDER=%~dp0/Build/ThirdParty/
 
 IF EXIST "%ROOT_FOLDER%" GOTO THIRD_PARTY_EXISTS
@@ -57,6 +74,6 @@ IF EXIST vcpkg.exe GOTO VCPKG_EXISTS
 	boost-uuid:x64-windows boost-uuid:x86-windows ^
 	boost-locale:x64-windows boost-locale:x86-windows ^
 	boost-iostreams:x64-windows boost-iostreams:x86-windows ^
-	--nuget --nuget-id=ThirdParty --nuget-version=1.4.0
+	--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
 
 downloads\tools\nuget-4.6.2-windows\nuget.exe install ThirdParty -Source %ROOT_FOLDER%\vcpkg -OutputDirectory ..\..\..\packages
