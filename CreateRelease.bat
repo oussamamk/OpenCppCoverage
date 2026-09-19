@@ -37,6 +37,7 @@ xcopy /y %X86%\boost_program_options-vc142-mt-x32-1_72.dll NewRelease\x86\Binari
 xcopy /y %X86%\boost_thread-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\bz2.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\zstd.dll NewRelease\x86\Binaries\
+mkdir NewRelease\x86\Binaries\Plugins\Exporter
 
 mkdir NewRelease\x86\Pdb
 xcopy /y %X86%\OpenCppCoverage.pdb NewRelease\x86\Pdb\
@@ -53,6 +54,7 @@ if not exist %X64%\OpenCppCoverage.exe (echo MISSING %X64%& set ERROR=1& goto :e
 
 mkdir NewRelease\x64\Binaries
 mkdir NewRelease\x64\Binaries\Template
+mkdir NewRelease\x64\Binaries\Plugins\Exporter
 xcopy /y /s /e %X64%\Template NewRelease\x64\Binaries\Template\
 xcopy /y %X64%\OpenCppCoverage.exe NewRelease\x64\Binaries\
 xcopy /y %X64%\Exporter.dll NewRelease\x64\Binaries\
@@ -88,6 +90,7 @@ if not exist %A64%\OpenCppCoverage.exe (echo MISSING %A64%& set ERROR=1& goto :e
 
 mkdir NewRelease\ARM64\Binaries
 mkdir NewRelease\ARM64\Binaries\Template
+mkdir NewRelease\ARM64\Binaries\Plugins\Exporter
 xcopy /y /s /e %A64%\Template NewRelease\ARM64\Binaries\Template\
 xcopy /y %A64%\OpenCppCoverage.exe NewRelease\ARM64\Binaries\
 xcopy /y %A64%\Exporter.dll NewRelease\ARM64\Binaries\
