@@ -45,7 +45,14 @@ IF EXIST vcpkg.exe GOTO VCPKG_EXISTS
 	set "MSBUILD="
 	for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do set "MSBUILD=%%i"
 	IF NOT DEFINED MSBUILD (echo ERROR: msbuild not found via vswhere & exit /b 1)
-	"%MSBUILD%" toolsrc\vcpkg.sln /p:Configuration=Release /p:PlatformToolset=v143 /m /nologo /v:m
+	rem pinned project targets SDK 8.1 which a VS2022 machine may not have;
+	rem override to the installed Win10/11 SDK
+	set "SDKVER="
+	for /f "usebackq delims=" %%i in (`reg query "HKLM\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0" /v ProductVersion 2^>nul ^| findstr /r "[0-9]*\.[0-9]*\.[0-9]*"`) do (
+		for /f "tokens=3" %%j in ("%%i") do set "SDKVER=%%j"
+	)
+	IF NOT DEFINED SDKVER set "SDKVER=10.0"
+	"%MSBUILD%" toolsrc\vcpkg.sln /p:Configuration=Release /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=%SDKVER% /m /nologo /v:m
 	IF ERRORLEVEL 1 (echo ERROR: building vcpkg.exe from toolsrc failed & exit /b 1)
 	copy /y toolsrc\vcpkg\vcpkg.exe vcpkg.exe
 :VCPKG_EXISTS
