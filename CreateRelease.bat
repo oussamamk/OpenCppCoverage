@@ -27,6 +27,8 @@ xcopy /y %X86%\FileFilter.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\Plugin.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\msdia140.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\libctemplate.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\libprotobuf.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\libprotobuf-lite.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_filesystem-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_locale-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\boost_log-vc142-mt-x32-1_72.dll NewRelease\x86\Binaries\
@@ -58,6 +60,8 @@ xcopy /y %X64%\FileFilter.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\Plugin.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\msdia140.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\libctemplate.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\libprotobuf.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\libprotobuf-lite.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_filesystem-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_locale-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\boost_log-vc142-mt-x64-1_72.dll NewRelease\x64\Binaries\
@@ -89,6 +93,8 @@ xcopy /y %A64%\FileFilter.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\Plugin.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\msdia140.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\libctemplate.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\libprotobuf.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\libprotobuf-lite.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_filesystem-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_locale-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_log-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
