@@ -64,6 +64,15 @@ python "%~dp0Build\Dependencies\vcpkg-visualstudio-toolset-patch.py"
 	copy /y toolsrc\msbuild.x64.release\vcpkg.exe vcpkg.exe
 :VCPKG_EXISTS
 
+rem prefetch jom (needed by openssl-windows): download.qt.io flakes often;
+rem qt.mirrorservice.org hosts the same file (same SHA512, no download.qt.io
+rem prefix in the path). vcpkg checks downloads\ first, so a cache hit makes
+rem the flaky URL irrelevant.
+IF NOT EXIST downloads\jom_1_1_3.zip (
+	curl -fL -o downloads\jom_1_1_3.zip "https://qt.mirrorservice.org/official_releases/jom/jom_1_1_3.zip"
+	IF ERRORLEVEL 1 (echo WARNING: jom prefetch failed - openssl build may hit download.qt.io flakiness)
+)
+
 .\vcpkg install poco:x64-windows poco:x86-windows
 .\vcpkg install protobuf:x64-windows protobuf:x86-windows
 .\vcpkg install gtest:x64-windows gtest:x86-windows
