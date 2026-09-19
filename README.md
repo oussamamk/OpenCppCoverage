@@ -6,57 +6,29 @@ OpenCppCoverage is an open source code coverage tool for C++ under Windows.
 The main usage is for unit testing coverage, but you can also use it to know the executed lines in a program for debugging purpose.
 
 ---------------------
-## Project status: archived and no longer maintained
+## About this fork
 
-This project is no longer actively maintained.
+This is an actively maintained fork of [OpenCppCoverage/OpenCppCoverage](https://github.com/OpenCppCoverage/OpenCppCoverage), which the original author retired (archived) around 2025. All credit for the original tool goes to them.
 
-I stopped active development and maintenance approximately seven years ago after moving away from C++ in my professional work. At first, I expected this to be temporary, but I am now formally retiring the project.
+This fork continues from `0.9.9.0` with:
 
-The existing source code and releases will remain available for historical use. However:
+* **ARM64 support**: OpenCppCoverage now builds and runs natively on Windows ARM64 (in addition to x86 and x64). It debugs ARM64-native targets and produces the same HTML and Cobertura reports as on x64. See the notes below.
+* Modern toolset builds (Visual Studio 2022, v143).
+* Bug fixes surfaced by the toolset bump (e.g. a never-thrown `std::runtime_error` in the unified-diff filter, a dead `<cvt/wstring>` include that broke v143 builds).
 
-* no further releases, bug fixes, or compatibility updates are planned;
-* issues and pull requests will not be reviewed;
-* support questions may not receive a response;
-* security fixes should not be expected;
-* users should evaluate the software carefully before continuing to depend on it.
+### Building for ARM64
 
-Forks and independent continuation of the project are welcome, subject to the existing licence.
+* Build with the `ARM64` platform (`msbuild CppCoverage.sln /p:Configuration=Debug /p:Platform=ARM64`). The C++/CLI test project (`TestCppCli`) is excluded from ARM64 configs — classic C++/CLI has no ARM64 target — and CI-style gtest filters still apply.
+* Third-party libraries for `arm64-windows` ship in the `ThirdParty.1.5.0` NuGet package, downloaded from this fork's [releases](../../releases) by `InstallThirdPartyLibraries.ps1`.
+* Breakpoints use the 4-byte `BRK #0xF000` encoding and the ARM64 PC-adjustment semantics (the breakpoint exception reports the PC at the continuation address), mirroring x64's `--Rip` handling.
+* `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
 
-### Community-maintained forks
+---------------------
+## Original project status (upstream)
 
-**There is currently no designated successor or recommended fork.**
+The upstream project is no longer actively maintained by its original author; the README below is preserved from upstream. Forks and independent continuation were explicitly welcomed by the original author under the project licence.
 
-The following independent fork has been brought to my attention:
-
-[bmarques1995/OpenCppCoverage](https://github.com/bmarques1995/OpenCppCoverage)
-
-**Note: I have not reviewed or tested this fork.**
-
-If you actively maintain a fork of this project and would like it to be considered for inclusion here, please contact me through OpenCppCoverage@gmail.com.
-
-I intend to link from this page to the most active community-maintained fork I am aware of. The selected fork may change over time as development activity changes.
-
-Any fork listed here is maintained independently. Its inclusion does not constitute a transfer of ownership, and I cannot provide support or guarantees for it.
-
-### Existing issues and pull requests
-
-Existing issues and pull requests have been closed as part of retiring the project.
-
-Their closure does not necessarily mean that an issue was resolved, that a proposed change was rejected, or that the contribution lacked value. It only means that the original repository is no longer being maintained.
-
-The history and discussion will remain available for reference.
-
-### Licence
-
-The project remains available under the terms described in the [LICENSE](LICENSE) file.
-
-Archiving the project does not change its licence. You may use, modify, fork, and redistribute the code according to those terms.
-
-### Thank you
-
-Thank you to everyone who used the project, reported issues, contributed code or documentation, reviewed changes, answered questions, or otherwise helped improve it.
-
-Maintaining this project and working with its community was a valuable experience. I am grateful for all the time and effort contributed over the years.
+**Upstream notice:** the original author stopped active development and maintenance approximately seven years ago after moving away from C++ in their professional work, and formally retired the project: no further releases, bug fixes, or compatibility updates; issues and pull requests not reviewed; support questions may not receive a response; security fixes not expected. The upstream repository and its releases remain available for historical use.
 
 ---------------------
 ## Features:
