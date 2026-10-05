@@ -1,4 +1,4 @@
-﻿![](https://github.com/OpenCppCoverage/OpenCppCoverage/workflows/Unit%20tests/badge.svg)
+![](https://github.com/OpenCppCoverage/OpenCppCoverage/workflows/Unit%20tests/badge.svg)
 # OpenCppCoverage
 
 OpenCppCoverage is an open source code coverage tool for C++ under Windows.
@@ -22,7 +22,7 @@ This fork continues from `0.9.9.0` with:
 * Third-party libraries (x86, x64 and `arm64-windows`) ship in the `ThirdParty.1.6.0` NuGet package, hosted in the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) repository (the same pattern the upstream project used for its `1.4.0` package) and installed by `InstallThirdPartyLibraries.ps1`.
 * Breakpoints use the 4-byte `BRK #0xF000` encoding and the ARM64 PC-adjustment semantics (the breakpoint exception reports the PC at the continuation address), mirroring x64's `--Rip` handling.
 * `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
-* `CreateInstallers.py` builds per-arch Inno Setup installers (`OpenCppCoverageSetup-<arch>-0.9.9.0.exe`) from that layout.
+* `CreateInstallers.py` builds per-arch Inno Setup installers (`OpenCppCoverageSetup-<arch>-0.9.9.1.exe`) from that layout.
 
 ### Rebuilding the ThirdParty dependency package (from scratch)
 
@@ -59,7 +59,7 @@ Building Inno Setup installers from the assembled layout (requires Inno Setup 6,
 python CreateInstallers.py --release-root .\NewRelease
 ```
 
-Outputs: `NewRelease\Installers\OpenCppCoverageSetup-{x86,x64,ARM64}-0.9.9.0.exe`. Each installer carries its arch's runtime files, the original wizard images/icon, a silent `vc_redist.<arch>` install, the `Plugins\Exporter` directory and an optional "add to PATH" task â€” the same layout as the original upstream setup.
+Outputs: `NewRelease\Installers\OpenCppCoverageSetup-{x86,x64,ARM64}-0.9.9.1.exe`. Each installer carries its arch's runtime files, the original wizard images/icon, a silent `vc_redist.<arch>` install, the `Plugins\Exporter` directory and an optional "add to PATH" task â€” the same layout as the original upstream setup.
 
 Manual equivalent (what the scripts automate):
 

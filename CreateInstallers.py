@@ -8,7 +8,7 @@ Based on the original OpenCppCoverageSetup-x64-0.9.9.0.exe layout
   - optional PATH task, wizard images, icon carried over
 
 Usage: python CreateInstallers.py --release-root C:\dev\OpenCppCoverage4\NewRelease
-Outputs: NewRelease\Installers\OpenCppCoverageSetup-<arch>-0.9.9.0.exe
+Outputs: NewRelease\Installers\OpenCppCoverageSetup-<arch>-0.9.9.1.exe
 """
 import argparse, os, shutil, subprocess, sys, io
 
@@ -21,7 +21,7 @@ for p in (r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
         ISCC = p
         break
 
-VERSION = '0.9.9.0'
+VERSION = '0.9.9.1'
 APPID = '{74933D3C-7641-4FA4-840E-313A4D076D87}'
 
 # per-arch installer metadata
@@ -69,7 +69,7 @@ A64_BOOST = [
 COMMON = [
     'CppCoverage.dll', 'Exporter.dll', 'FileFilter.dll', 'Plugin.dll',
     'Tools.dll', 'OpenCppCoverage.exe', 'msdia140.dll', 'libctemplate.dll',
-    'libprotobuf.dll', 'libprotobuf-lite.dll',
+    'libprotobuf.dll', 'libprotobuf-lite.dll', 'capstone.dll',
 ]
 X86_X64_COMPR = ['bz2.dll', 'zstd.dll', 'zlib1.dll', 'lzma.dll']
 A64_COMPR = ['z.dll', 'bz2.dll', 'liblzma.dll', 'zstd.dll']
