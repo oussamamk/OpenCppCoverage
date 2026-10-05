@@ -39,16 +39,72 @@ namespace Plugin
 	}
 
 	//-------------------------------------------------------------------------
+	void FileCoverage::AddLine(const LineCoverage& line)
+	{
+		if (!lines_.emplace(line.GetLineNumber(), line).second)
+		{
+			throw std::runtime_error("Line " +
+				std::to_string(line.GetLineNumber()) +
+				" already exists for " + path_.string());
+		}
+	}
+
+	//-------------------------------------------------------------------------
 	void FileCoverage::UpdateLine(unsigned int lineNumber, bool hasBeenExecuted)
 	{
-		if (!lines_.erase(lineNumber))
+		auto it = lines_.find(lineNumber);
+
+		if (it == lines_.end())
 		{
 			throw std::runtime_error(
 			    "Line " + std::to_string(lineNumber) +
 			    " does not exists and cannot be updated for " + path_.string());
 		}
 
-		AddLine(lineNumber, hasBeenExecuted);
+		// Preserve branch condition data across the update (the line map is
+		// keyed storage; conditions ride along when only the executed flag
+		// changes).
+		auto conditions = it->second.GetConditions();
+		lines_.erase(it);
+		lines_.emplace(lineNumber,
+		               LineCoverage{lineNumber, hasBeenExecuted,
+		                            std::move(conditions)});
+	}
+
+	//-------------------------------------------------------------------------
+	void FileCoverage::MergeLineConditions(
+		unsigned int lineNumber,
+		const std::vector<LineCoverage::Condition>& conditions)
+	{
+		auto it = lines_.find(lineNumber);
+
+		if (it == lines_.end())
+		{
+			throw std::runtime_error(
+			    "Line " + std::to_string(lineNumber) +
+			    " does not exists and cannot merge conditions for " +
+			    path_.string());
+		}
+
+		it->second.MergeConditions(conditions);
+	}
+
+	//-------------------------------------------------------------------------
+	void FileCoverage::AddLineConditions(
+		unsigned int lineNumber,
+		std::vector<LineCoverage::Condition>&& conditions)
+	{
+		auto it = lines_.find(lineNumber);
+
+		if (it == lines_.end())
+		{
+			throw std::runtime_error(
+			    "Line " + std::to_string(lineNumber) +
+			    " does not exists and cannot attach conditions for " +
+			    path_.string());
+		}
+
+		it->second.MergeConditions(conditions);
 	}
 
 	//-------------------------------------------------------------------------

@@ -33,6 +33,7 @@ namespace CppCoverage
 	class BreakPoint;
 	class ExecutedAddressManager;
 	class FilterAssistant;
+	class BranchSiteEnumerator;
 
 	class MonitoredLineRegister : private IDebugInformationHandler
 	{
@@ -41,7 +42,8 @@ namespace CppCoverage
 		                      std::shared_ptr<ExecutedAddressManager>,
 		                      std::shared_ptr<ICoverageFilterManager>,
 		                      std::unique_ptr<DebugInformationEnumerator>,
-		                      std::shared_ptr<FilterAssistant>);
+		                      std::shared_ptr<FilterAssistant>,
+		                      bool branchCoverageEnabled);
 		~MonitoredLineRegister();
 
 		bool RegisterLineToMonitor(const std::filesystem::path& modulePath,
@@ -62,6 +64,17 @@ namespace CppCoverage
 
 		const FileFilter::ModuleInfo& GetModuleInfo() const;
 
+		// Conditional-branch sites discovered for the current source file,
+		// waiting for SetBreakPoint to plant the batch.
+		struct PendingConditionSite
+		{
+			std::uint64_t address_;
+			std::uint64_t takenTarget_;
+			std::uint64_t fallThrough_;
+			int lineNumber_;
+			unsigned int conditionIndex_;
+		};
+
 		std::unique_ptr<FileFilter::ModuleInfo> moduleInfo_;
 		const std::shared_ptr<BreakPoint> breakPoint_;
 		const std::shared_ptr<ExecutedAddressManager> executedAddressManager_;
@@ -69,5 +82,8 @@ namespace CppCoverage
 		const std::unique_ptr<DebugInformationEnumerator>
 		    debugInformationEnumerator_;
 		const std::shared_ptr<FilterAssistant> filterAssistant_;
+		const bool branchCoverageEnabled_;
+		std::unique_ptr<BranchSiteEnumerator> branchSiteEnumerator_;
+		std::vector<PendingConditionSite> pendingConditionSites_;
 	};
 }

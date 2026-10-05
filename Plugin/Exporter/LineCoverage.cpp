@@ -17,6 +17,8 @@
 #include "stdafx.h"
 #include "LineCoverage.hpp"
 
+#include <algorithm>
+
 namespace Plugin
 {
 	//-------------------------------------------------------------------------
@@ -25,7 +27,17 @@ namespace Plugin
 		, hasBeenExecuted_(hasBeenExecuted)
 	{
 	}
-		
+
+	//-------------------------------------------------------------------------
+	LineCoverage::LineCoverage(unsigned int lineNumber,
+	                           bool hasBeenExecuted,
+	                           std::vector<Condition> conditions)
+		: lineNumber_(lineNumber)
+		, hasBeenExecuted_(hasBeenExecuted)
+		, conditions_{std::move(conditions)}
+	{
+	}
+
 	//-------------------------------------------------------------------------
 	unsigned int LineCoverage::GetLineNumber() const
 	{
@@ -36,5 +48,37 @@ namespace Plugin
 	bool LineCoverage::HasBeenExecuted() const
 	{
 		return hasBeenExecuted_;
+	}
+
+	//-------------------------------------------------------------------------
+	const std::vector<LineCoverage::Condition>& LineCoverage::GetConditions() const
+	{
+		return conditions_;
+	}
+
+	//-------------------------------------------------------------------------
+	bool LineCoverage::HasConditions() const
+	{
+		return !conditions_.empty();
+	}
+
+	//-------------------------------------------------------------------------
+	void LineCoverage::MergeConditions(const std::vector<Condition>& conditions)
+	{
+		for (const auto& condition : conditions)
+		{
+			auto it = std::find_if(conditions_.begin(), conditions_.end(),
+				[&condition](const Condition& c) { return c.index_ == condition.index_; });
+
+			if (it == conditions_.end())
+			{
+				conditions_.push_back(condition);
+			}
+			else
+			{
+				it->takenSeen_ = it->takenSeen_ || condition.takenSeen_;
+				it->notTakenSeen_ = it->notTakenSeen_ || condition.notTakenSeen_;
+			}
+		}
 	}
 }

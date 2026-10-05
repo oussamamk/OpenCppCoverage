@@ -21,6 +21,7 @@
 #include "ICoverageFilterManager.hpp"
 #include "Address.hpp"
 #include "BreakPoint.hpp"
+#include "BranchSiteEnumerator.hpp"
 #include "ExecutedAddressManager.hpp"
 #include "CppCoverageException.hpp"
 #include "FilterAssistant.hpp"
@@ -86,13 +87,17 @@ namespace CppCoverage
 	    std::shared_ptr<ExecutedAddressManager> executedAddressManager,
 	    std::shared_ptr<ICoverageFilterManager> coverageFilterManager,
 	    std::unique_ptr<DebugInformationEnumerator> debugInformationEnumerator,
-	    std::shared_ptr<FilterAssistant> filterAssistant)
+	    std::shared_ptr<FilterAssistant> filterAssistant,
+	    bool branchCoverageEnabled)
 	    : breakPoint_{breakPoint},
 	      executedAddressManager_{executedAddressManager},
 	      coverageFilterManager_{coverageFilterManager},
 	      debugInformationEnumerator_{std::move(debugInformationEnumerator)},
-	      filterAssistant_{std::move(filterAssistant)}
+	      filterAssistant_{std::move(filterAssistant)},
+	      branchCoverageEnabled_{branchCoverageEnabled}
 	{
+		if (branchCoverageEnabled_)
+			branchSiteEnumerator_ = std::make_unique<BranchSiteEnumerator>();
 	}
 
 	//----------------------------------------------------------------------------
@@ -147,6 +152,9 @@ namespace CppCoverage
 
 		std::vector<DWORD64> addresses;
 		LineNumberByAddress lineNumberByAddress;
+		std::vector<int> conditionLineNumbers;
+		std::vector<DWORD64> conditionLineAddresses;
+		std::vector<ULONG> conditionLineSymbols;
 
 		for (const auto& lineInfo : fileInfo.lineInfoColllection_)
 		{
@@ -160,8 +168,50 @@ namespace CppCoverage
 
 				lineNumberByAddress[addressValue].push_back(lineNumber);
 				addresses.push_back(addressValue);
+				conditionLineNumbers.push_back(lineNumber);
+				conditionLineAddresses.push_back(addressValue);
+				conditionLineSymbols.push_back(lineInfo.symbolIndex_);
 			}
 		}
+
+		// Branch coverage: decode the selected lines' byte ranges and plant
+		// one breakpoint per conditional-branch site. Sites are merged into
+		// the SAME batch as the line starts (SetBreakPoints below): planting
+		// a second batch over an already-broken address would save the
+		// breakpoint bytes as the "original instruction" and corrupt the
+		// restore. The address-to-line bookkeeping deduplicates naturally
+		// via lineNumberByAddress.
+		if (branchSiteEnumerator_)
+		{
+			auto conditionSites = branchSiteEnumerator_->Enumerate(
+			    moduleInfo.hProcess_,
+			    reinterpret_cast<std::uint64_t>(moduleInfo.baseOfImage_),
+			    conditionLineNumbers,
+			    conditionLineAddresses,
+			    conditionLineSymbols);
+
+			for (const auto& site : conditionSites)
+			{
+				pendingConditionSites_.push_back(
+				    PendingConditionSite{site.siteAddress_, site.takenTarget_,
+				                         site.fallThrough_, site.lineNumber_,
+				                         site.conditionIndex_});
+				// A site can coincide with a line start (e.g. on ARM64 a
+				// cbz/tbz is often the first instruction of the if). Then
+				// the line's own breakpoint covers the site: adding a
+				// second batch entry or a second RegisterAddress for the
+				// same address would make RegisterAddress return false and
+				// unplanted the just-planted breakpoint. RegisterCondition
+				// Site below still attaches the condition to the address.
+				if (!lineNumberByAddress.count(site.siteAddress_))
+				{
+					addresses.push_back(site.siteAddress_);
+					lineNumberByAddress[site.siteAddress_].push_back(
+					    site.lineNumber_);
+				}
+			}
+		}
+
 		SetBreakPoint(path,
 		              moduleInfo.hProcess_,
 		              std::move(addresses),
@@ -201,6 +251,18 @@ namespace CppCoverage
 				}
 			}
 		}
+
+		// Register the conditional-branch sites with the runtime target
+		// bookkeeping (after the batch is planted; RegisterConditionSite
+		// attaches to the same address entries without touching memory).
+		for (const auto& site : pendingConditionSites_)
+		{
+			Address address{hProcess, reinterpret_cast<void*>(site.address_)};
+			executedAddressManager_->RegisterConditionSite(
+			    address, path.wstring(), site.lineNumber_, site.conditionIndex_,
+			    site.takenTarget_, site.fallThrough_);
+		}
+		pendingConditionSites_.clear();
 	}
 
 	//--------------------------------------------------------------------------

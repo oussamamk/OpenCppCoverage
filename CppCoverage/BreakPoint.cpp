@@ -101,7 +101,8 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
-	void BreakPoint::AdjustEipAfterBreakPointRemoval(HANDLE hThread) const
+	void BreakPoint::AdjustEipAfterBreakPointRemoval(
+		HANDLE hThread, bool requestSingleStep) const
 	{
 		CONTEXT lcContext;
 		lcContext.ContextFlags = CONTEXT_ALL;
@@ -113,11 +114,21 @@ namespace CppCoverage
 		// the continuation address (the instruction after the 4-byte BRK).
 		// Move back one instruction so the restored original instruction runs.
 		lcContext.Pc -= sizeof(BreakPoint::breakPointInstruction);
+		// PSTATE.SS (bit 21): the thread raises a Software Step exception
+		// after executing exactly one instruction (branch coverage).
+		if (requestSingleStep)
+			lcContext.Cpsr |= 0x00200000;
 #else
 #ifdef _WIN64
 		--lcContext.Rip; // Move back one byte
+		// Trap flag: raise EXCEPTION_SINGLE_STEP after the restored
+		// instruction executes.
+		if (requestSingleStep)
+			lcContext.EFlags |= 0x100;
 #else
 		--lcContext.Eip; // Move back one byte
+		if (requestSingleStep)
+			lcContext.EFlags |= 0x100;
 #endif
 #endif
 		if (!SetThreadContext(hThread, &lcContext))

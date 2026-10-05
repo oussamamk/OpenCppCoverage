@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <!-- The vcpkg triplet name differs from the MSBuild platform for Win32. -->
+    <CapstoneTriplet Condition="'$(Platform)'=='Win32'">x86-windows</CapstoneTriplet>
+    <CapstoneTriplet Condition="'$(Platform)'=='x64'">x64-windows</CapstoneTriplet>
+    <CapstoneTriplet Condition="'$(Platform)'=='ARM64'">arm64-windows</CapstoneTriplet>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)\packages\thirdparty.1.6.0\installed\$(CapstoneTriplet)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>capstone.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\packages\thirdparty.1.6.0\installed\$(CapstoneTriplet)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

@@ -29,9 +29,23 @@ namespace CppCoverage
 	CoverageRate::CoverageRate(int executedLinesCount, int unexecutedLinesCount)
 		: executedLinesCount_{ executedLinesCount }
 		, unexecutedLinesCount_{ unexecutedLinesCount }
+		, coveredBranchesCount_{ 0 }
+		, uncoveredBranchesCount_{ 0 }
 	{
 	}
-		
+
+	//-------------------------------------------------------------------------
+	CoverageRate::CoverageRate(int executedLinesCount,
+	                           int unexecutedLinesCount,
+	                           int coveredBranchesCount,
+	                           int uncoveredBranchesCount)
+		: executedLinesCount_{ executedLinesCount }
+		, unexecutedLinesCount_{ unexecutedLinesCount }
+		, coveredBranchesCount_{ coveredBranchesCount }
+		, uncoveredBranchesCount_{ uncoveredBranchesCount }
+	{
+	}
+
 	//-------------------------------------------------------------------------
 	int CoverageRate::GetExecutedLinesCount() const
 	{
@@ -67,10 +81,40 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
+	int CoverageRate::GetCoveredBranchesCount() const
+	{
+		return coveredBranchesCount_;
+	}
+
+	//-------------------------------------------------------------------------
+	int CoverageRate::GetUncoveredBranchesCount() const
+	{
+		return uncoveredBranchesCount_;
+	}
+
+	//-------------------------------------------------------------------------
+	int CoverageRate::GetTotalBranchesCount() const
+	{
+		return coveredBranchesCount_ + uncoveredBranchesCount_;
+	}
+
+	//-------------------------------------------------------------------------
+	double CoverageRate::GetBranchRate() const
+	{
+		auto totalBranches = coveredBranchesCount_ + uncoveredBranchesCount_;
+
+		if (totalBranches == 0)
+			return 0.0;
+		return static_cast<double>(coveredBranchesCount_) / totalBranches;
+	}
+
+	//-------------------------------------------------------------------------
 	CoverageRate& CoverageRate::operator+=(const CoverageRate& coverageRate)
 	{
 		executedLinesCount_ += coverageRate.executedLinesCount_;
 		unexecutedLinesCount_ += coverageRate.unexecutedLinesCount_;
+		coveredBranchesCount_ += coverageRate.coveredBranchesCount_;
+		uncoveredBranchesCount_ += coverageRate.uncoveredBranchesCount_;
 
 		return *this;
 	}

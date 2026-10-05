@@ -47,7 +47,8 @@ namespace CppCoverage
 		InstructionCollection
 		SetBreakPoints(HANDLE hProcess, std::vector<DWORD64>&& addresses) const;
 
-		void AdjustEipAfterBreakPointRemoval(HANDLE hThread) const;
+		void AdjustEipAfterBreakPointRemoval(
+			HANDLE hThread, bool requestSingleStep = false) const;
 
 	  private:
 		BreakPoint(const BreakPoint&) = delete;

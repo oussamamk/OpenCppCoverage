@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 #include "Plugin/Exporter/CoverageData.hpp"
@@ -39,6 +40,7 @@ namespace CppCoverage
 	class UnifiedDiffSettings;
 	class MonitoredLineRegister;
 	class FilterAssistant;
+	class BranchStepTracker;
 
 	class CPPCOVERAGE_DLL CodeCoverageRunner : private IDebugEventsHandler
 	{
@@ -61,6 +63,7 @@ namespace CppCoverage
 
 		void LoadModule(HANDLE hProcess, HANDLE hFile, void* baseOfImage);
 		bool OnBreakPoint(const EXCEPTION_DEBUG_INFO&, HANDLE hProcess, HANDLE hThread);
+		ExceptionType OnSingleStep(const EXCEPTION_DEBUG_INFO&, HANDLE hProcess, HANDLE hThread);
 
 	private:
 		std::shared_ptr<BreakPoint> breakpoint_;
@@ -70,6 +73,8 @@ namespace CppCoverage
 		std::unique_ptr<ExceptionHandler> exceptionHandler_;
 		std::shared_ptr<Tools::WarningManager> warningManager_;
 		std::shared_ptr<FilterAssistant> filterAssistant_;
+		bool branchCoverageEnabled_ = false;
+		std::unique_ptr<BranchStepTracker> branchStepTracker_;
 	};
 }
 

@@ -25,7 +25,9 @@ namespace CppCoverage
 	public:
 		CoverageRate();
 		CoverageRate(int executedLinesCount, int unexecutedLinesCount);
-		
+		CoverageRate(int executedLinesCount, int unexecutedLinesCount,
+		             int coveredBranchesCount, int uncoveredBranchesCount);
+
 		CoverageRate& operator=(const CoverageRate&) = delete;
 		CoverageRate(const CoverageRate&) = default;
 
@@ -35,11 +37,22 @@ namespace CppCoverage
 		int GetPercentRate() const;
 		double GetRate() const;
 
+		// Branch coverage (--branch). A branch is covered when both of its
+		// outcomes were observed (Emma semantics); it is valid when branch
+		// data exists for it (i.e. it was tracked at all).
+		int GetCoveredBranchesCount() const;
+		int GetUncoveredBranchesCount() const;
+		int GetTotalBranchesCount() const;
+		// 0.0 when no branch data exists so a line-only run keeps the
+		// historical branch-rate="0" output byte-identical.
+		double GetBranchRate() const;
+
 		CoverageRate& operator+=(const CoverageRate&);
-		
+
 	private:
 		int executedLinesCount_;
 		int unexecutedLinesCount_;
-	}; 	
+		int coveredBranchesCount_;
+		int uncoveredBranchesCount_;
+	};
 }
-

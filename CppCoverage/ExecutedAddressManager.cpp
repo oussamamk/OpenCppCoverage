@@ -46,10 +46,37 @@ namespace CppCoverage
 	};
 
 	//-------------------------------------------------------------------------
+	// Persistent observed-outcome record of one conditional branch, owned by
+	// the File entry (survives address-map cleanup like the line bools).
+	struct ConditionState
+	{
+		bool takenSeen_ = false;
+		bool notTakenSeen_ = false;
+		unsigned int observationCount_ = 0;
+	};
+
+	//-------------------------------------------------------------------------
+	// Runtime state of one conditional branch site (branch coverage, --branch).
+	// condition_ points into the owning File's persistent condition records so
+	// observed outcomes survive OnExitProcess/OnUnloadModule address-map
+	// cleanup, exactly like the hasBeenExecutedCollection_ bool pointers.
+	struct ExecutedAddressManager::ConditionRuntime
+	{
+		std::uint64_t takenTarget_;
+		std::uint64_t fallThrough_;
+		void* dllBaseOfImage_;
+		ConditionState* condition_;
+	};
+
+	//-------------------------------------------------------------------------
 	struct ExecutedAddressManager::File
-	{		
+	{
 		// Use map to have iterator always valid
 		std::map<unsigned int, bool> lines;
+		// Persistent per-line branch condition records: key is
+		// (lineNumber, conditionIndex). Iterator stability is required
+		// (ConditionRuntime holds pointers into the mapped values).
+		std::map<std::pair<unsigned int, unsigned int>, ConditionState> conditions;
 	};
 
 	//-------------------------------------------------------------------------
@@ -146,6 +173,106 @@ namespace CppCoverage
 		}
 		return line.instructionToRestore_;
 	}
+
+	//-------------------------------------------------------------------------
+	void ExecutedAddressManager::RegisterConditionSite(
+		const Address& address,
+		const std::wstring& filename,
+		unsigned int line,
+		unsigned int conditionIndex,
+		std::uint64_t takenTarget,
+		std::uint64_t fallThrough)
+	{
+		auto& module = GetLastAddedModule();
+		auto& file = module.files_[filename];
+
+		LOG_TRACE << "RegisterConditionSite: " << address << " for " << filename
+		          << ":" << line << " condition " << conditionIndex;
+
+		// The persistent condition record keeps observed outcomes across
+		// module unload/reload (same sharing pattern as the line bools).
+		auto& condition =
+		    file.conditions[{line, conditionIndex}];
+
+		auto itSite = conditionSiteMap_.find(address);
+		if (itSite == conditionSiteMap_.end())
+		{
+			conditionSiteMap_.emplace(
+			    address,
+			    ConditionRuntime{takenTarget, fallThrough,
+			                     lastModule_.baseOfImage_, &condition});
+		}
+		else
+		{
+			// Re-registration of the same site (e.g. the DLL was unloaded and
+			// reloaded): refresh the targets, keep the record pointer and the
+			// observed outcomes.
+			itSite->second.takenTarget_ = takenTarget;
+			itSite->second.fallThrough_ = fallThrough;
+			itSite->second.dllBaseOfImage_ = lastModule_.baseOfImage_;
+			itSite->second.condition_ = &condition;
+		}
+	}
+
+	//-------------------------------------------------------------------------
+	ExecutedAddressManager::ConditionSiteInfo
+	ExecutedAddressManager::GetConditionSite(const Address& address) const
+	{
+		auto it = conditionSiteMap_.find(address);
+
+		if (it == conditionSiteMap_.end())
+			return ConditionSiteInfo{};
+		return ConditionSiteInfo{it->second.takenTarget_,
+		                         it->second.fallThrough_};
+	}
+
+	//-------------------------------------------------------------------------
+	void ExecutedAddressManager::MarkConditionOutcome(
+		const Address& address, bool taken)
+	{
+		auto itSite = conditionSiteMap_.find(address);
+
+		if (itSite == conditionSiteMap_.end())
+			return;
+
+		auto* condition = itSite->second.condition_;
+		if (!condition)
+			THROW("Condition state pointer is null.");
+
+		if (taken)
+			condition->takenSeen_ = true;
+		else
+			condition->notTakenSeen_ = true;
+		++condition->observationCount_;
+
+		LOG_TRACE << "BranchCoverage outcome credited " << address
+		          << " taken=" << taken
+		          << " takenSeen=" << condition->takenSeen_
+		          << " notTakenSeen=" << condition->notTakenSeen_
+		          << " obsCount=" << condition->observationCount_;
+	}
+
+	//-------------------------------------------------------------------------
+	bool ExecutedAddressManager::ShouldReplantConditionSite(
+		const Address& address) const
+	{
+		auto itSite = conditionSiteMap_.find(address);
+
+		if (itSite == conditionSiteMap_.end())
+			return false;
+
+		const auto* condition = itSite->second.condition_;
+		if (!condition)
+			return false;
+
+		// Re-observe while an outcome is missing, bounded by the cap. The
+		// count grows by one per observation (MarkConditionOutcome); each
+		// plant yields exactly one more observation.
+		static constexpr unsigned int MaxObservationsPerCondition = 100;
+
+		return (!condition->takenSeen_ || !condition->notTakenSeen_) &&
+		       condition->observationCount_ < MaxObservationsPerCondition;
+	}
 	
 	//-------------------------------------------------------------------------
 	Plugin::CoverageData ExecutedAddressManager::CreateCoverageData(
@@ -170,10 +297,33 @@ namespace CppCoverage
 				{
 					auto lineNumber = pair.first;
 					bool hasLineBeenExecuted = pair.second;
-					
+
 					fileCoverage.AddLine(lineNumber, hasLineBeenExecuted);
 				}
-			}			
+
+				// Attach branch conditions (grouped per line, index order).
+				unsigned int currentLine = 0;
+				std::vector<Plugin::LineCoverage::Condition> conditions;
+				auto flush = [&]()
+				{
+					if (!conditions.empty())
+						fileCoverage.AddLineConditions(currentLine, std::move(conditions));
+					conditions.clear();
+				};
+				for (const auto& pair : fileData.conditions)
+				{
+					if (pair.first.first != currentLine)
+					{
+						flush();
+						currentLine = pair.first.first;
+					}
+					conditions.emplace_back(
+					    pair.first.second,
+					    pair.second.takenSeen_,
+					    pair.second.notTakenSeen_);
+				}
+				flush();
+			}
 		}
 
 		return coverageData;
@@ -195,9 +345,29 @@ namespace CppCoverage
 	}
 
 	//-------------------------------------------------------------------------
+	template <typename Condition>
+	void ExecutedAddressManager::RemoveConditionSiteIf(Condition condition)
+	{
+		auto it = conditionSiteMap_.begin();
+
+		while (it != conditionSiteMap_.end())
+		{
+			if (condition(*it))
+				it = conditionSiteMap_.erase(it);
+			else
+				++it;
+		}
+	}
+
+	//-------------------------------------------------------------------------
 	void ExecutedAddressManager::OnExitProcess(HANDLE hProcess)
 	{
 		RemoveAddressLineIf([=](const auto& pair)
+		{
+			return pair.first.GetProcessHandle() == hProcess;
+		});
+
+		RemoveConditionSiteIf([=](const auto& pair)
 		{
 			return pair.first.GetProcessHandle() == hProcess;
 		});
@@ -207,6 +377,12 @@ namespace CppCoverage
 	void ExecutedAddressManager::OnUnloadModule(HANDLE hProcess, void* dllBaseOfImage)
 	{
 		RemoveAddressLineIf([=](const auto& pair)
+		{
+			return pair.first.GetProcessHandle() == hProcess
+				&& pair.second.dllBaseOfImage_ == dllBaseOfImage;
+		});
+
+		RemoveConditionSiteIf([=](const auto& pair)
 		{
 			return pair.first.GetProcessHandle() == hProcess
 				&& pair.second.dllBaseOfImage_ == dllBaseOfImage;

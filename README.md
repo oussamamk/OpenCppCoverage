@@ -1,4 +1,4 @@
-![](https://github.com/OpenCppCoverage/OpenCppCoverage/workflows/Unit%20tests/badge.svg)
+﻿![](https://github.com/OpenCppCoverage/OpenCppCoverage/workflows/Unit%20tests/badge.svg)
 # OpenCppCoverage
 
 OpenCppCoverage is an open source code coverage tool for C++ under Windows.
@@ -18,15 +18,15 @@ This fork continues from `0.9.9.0` with:
 
 ### Building for ARM64
 
-* Build with the `ARM64` platform (`msbuild CppCoverage.sln /p:Configuration=Debug /p:Platform=ARM64`). The C++/CLI test project (`TestCppCli`) is excluded from ARM64 configs — classic C++/CLI has no ARM64 target — and CI-style gtest filters still apply.
-* Third-party libraries (x86, x64 and `arm64-windows`) ship in the `ThirdParty.1.5.0` NuGet package, hosted in the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) repository (the same pattern the upstream project used for its `1.4.0` package) and installed by `InstallThirdPartyLibraries.ps1`.
+* Build with the `ARM64` platform (`msbuild CppCoverage.sln /p:Configuration=Debug /p:Platform=ARM64`). The C++/CLI test project (`TestCppCli`) is excluded from ARM64 configs â€” classic C++/CLI has no ARM64 target â€” and CI-style gtest filters still apply.
+* Third-party libraries (x86, x64 and `arm64-windows`) ship in the `ThirdParty.1.6.0` NuGet package, hosted in the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) repository (the same pattern the upstream project used for its `1.4.0` package) and installed by `InstallThirdPartyLibraries.ps1`.
 * Breakpoints use the 4-byte `BRK #0xF000` encoding and the ARM64 PC-adjustment semantics (the breakpoint exception reports the PC at the continuation address), mirroring x64's `--Rip` handling.
 * `CreateRelease.bat` assembles a `NewRelease\<arch>\{Binaries,Pdb}` layout for x86, x64 and ARM64 after a Release build.
 * `CreateInstallers.py` builds per-arch Inno Setup installers (`OpenCppCoverageSetup-<arch>-0.9.9.0.exe`) from that layout.
 
 ### Rebuilding the ThirdParty dependency package (from scratch)
 
-The dependency package (`ThirdParty.1.5.0.nupkg`) can be rebuilt on any machine from the four scripts at the repo root — each runs independently, so you can trigger a single arch or resume after a failure without repeating the whole pipeline:
+The dependency package (`ThirdParty.1.6.0.nupkg`) can be rebuilt on any machine from the four scripts at the repo root â€” each runs independently, so you can trigger a single arch or resume after a failure without repeating the whole pipeline:
 
 ```text
 Buildx64Dependencies.bat      1. pinned vcpkg setup (VS2022 fixes) + x64 ports
@@ -36,7 +36,7 @@ BuildArm64Dependencies.bat    3. arm64 ports (pinned protobuf/gtest/ctemplate +
 BuildPackageDependencies.bat  4. both vcpkg exports + final nupkg assembly
 ```
 
-Each script reuses what the previous ones installed (reruns are fast), re-applies the idempotent VS2022 patches, and errors clearly if a prerequisite hasn't run. `BuildThirdPartyDependencies.bat` is the one-shot orchestrator calling all four in sequence. The final package lands in `packages\ThirdParty.1.5.0.nupkg` (~550 MB; the ~50 MB over upstream's lean 1.4.0 is legitimate VS2022 v143 PDB growth in the debug trees).
+Each script reuses what the previous ones installed (reruns are fast), re-applies the idempotent VS2022 patches, and errors clearly if a prerequisite hasn't run. `BuildThirdPartyDependencies.bat` is the one-shot orchestrator calling all four in sequence. The final package lands in `packages\ThirdParty.1.6.0.nupkg` (~550 MB; the ~50 MB over upstream's lean 1.4.0 is legitimate VS2022 v143 PDB growth in the debug trees).
 
 ### Build procedure from scratch (any machine)
 
@@ -45,13 +45,13 @@ Prerequisites:
 * [Inno Setup 6](https://jrsoftware.org/isinfo.php) for the installers only: `winget install JRSoftware.InnoSetup`.
 * Internet access on the first run: the third-party NuGet package (~500 MB) and the per-arch `vc_redist` binaries are downloaded once and cached.
 
-One-shot deps + build + package (downloads the `ThirdParty.1.5.0` NuGet package from the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) release, builds, auto-retries transient PCH failures on memory-constrained machines, and assembles the `NewRelease` layout):
+One-shot deps + build + package (downloads the `ThirdParty.1.6.0` NuGet package from the [OpenCppCoverageThirdParty](https://github.com/oussamamk/OpenCppCoverageThirdParty/releases) release, builds, auto-retries transient PCH failures on memory-constrained machines, and assembles the `NewRelease` layout):
 
 ```powershell
 .\BuildEnvironment.ps1 -Configuration Release -Platforms x64,ARM64 -Package
 ```
 
-Add `-Platforms x86,x64,ARM64` to build all three architectures. Run the same script again after a fresh clone on any machine — it skips what is already installed.
+Add `-Platforms x86,x64,ARM64` to build all three architectures. Run the same script again after a fresh clone on any machine â€” it skips what is already installed.
 
 Building Inno Setup installers from the assembled layout (requires Inno Setup 6, `ISCC.exe` is auto-detected; the first run downloads `vc_redist.x86/x64/arm64.exe` from `aka.ms` and caches them in `NewRelease\Installers\`):
 
@@ -59,7 +59,7 @@ Building Inno Setup installers from the assembled layout (requires Inno Setup 6,
 python CreateInstallers.py --release-root .\NewRelease
 ```
 
-Outputs: `NewRelease\Installers\OpenCppCoverageSetup-{x86,x64,ARM64}-0.9.9.0.exe`. Each installer carries its arch's runtime files, the original wizard images/icon, a silent `vc_redist.<arch>` install, the `Plugins\Exporter` directory and an optional "add to PATH" task — the same layout as the original upstream setup.
+Outputs: `NewRelease\Installers\OpenCppCoverageSetup-{x86,x64,ARM64}-0.9.9.0.exe`. Each installer carries its arch's runtime files, the original wizard images/icon, a silent `vc_redist.<arch>` install, the `Plugins\Exporter` directory and an optional "add to PATH" task â€” the same layout as the original upstream setup.
 
 Manual equivalent (what the scripts automate):
 
@@ -85,6 +85,7 @@ The upstream project is no longer actively maintained by its original author; th
 - **Non intrusive**: Just run your program with OpenCppCoverage, no need to recompile your application.
 - **HTML reporting**
 - **Line coverage**.
+- **Branch coverage**: pass `--branch` to also track conditional branches (x64 and ARM64). The Cobertura export then reports `branch-rate`, `branches-covered`/`branches-valid` and per-line `condition-coverage` (Emma semantics: a condition is covered when both outcomes were observed). Only supported for debug-style builds (`--optimized_build` may drop branch sites). Jump-table `switch` statements are not attributed.
 - **Run as Visual Studio Plugin**: See [here](https://github.com/OpenCppCoverage/OpenCppCoveragePlugin) for more information.
 - **Jenkins support**: See [here](https://github.com/OpenCppCoverage/OpenCppCoverage/wiki/Jenkins) for more information.
 - **Support optimized build**.

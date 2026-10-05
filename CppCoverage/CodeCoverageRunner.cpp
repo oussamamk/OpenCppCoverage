@@ -18,6 +18,7 @@
 #include "CodeCoverageRunner.hpp"
 
 #include <sstream>
+#include <vector>
 #include <boost/optional.hpp>
 
 #include "tools/Log.hpp"
@@ -27,6 +28,7 @@
 #include "ExecutedAddressManager.hpp"
 #include "HandleInformation.hpp"
 #include "BreakPoint.hpp"
+#include "BranchStepTracker.hpp"
 #include "CoverageFilterManager.hpp"
 #include "StartInfo.hpp"
 #include "ExceptionHandler.hpp"
@@ -52,8 +54,9 @@ namespace CppCoverage
 		executedAddressManager_ = std::make_shared<ExecutedAddressManager>();
 		exceptionHandler_ = std::make_unique<ExceptionHandler>();
 		breakpoint_ = std::make_shared<BreakPoint>();
+		branchStepTracker_ = std::make_unique<BranchStepTracker>();
 	}
-	
+
 	//-------------------------------------------------------------------------
 	CodeCoverageRunner::~CodeCoverageRunner()
 	{
@@ -65,9 +68,11 @@ namespace CppCoverage
 	{
 		Debugger debugger{ settings.GetCoverChildren(), settings.GetContinueAfterCppException(), settings.GetStopOnAssert()};
 
+		branchCoverageEnabled_ = settings.GetBranchCoverage();
+
 		coverageFilterManager_ = std::make_shared<CoverageFilterManager>(
 			settings.GetCoverageFilterSettings(),
-			settings.GetUnifiedDiffSettings(), 
+			settings.GetUnifiedDiffSettings(),
 			settings.GetExcludedLineRegexes(),
 			settings.GetOptimizedBuildSupport());
 
@@ -76,7 +81,8 @@ namespace CppCoverage
 		    executedAddressManager_,
 		    coverageFilterManager_,
 		    std::make_unique<DebugInformationEnumerator>(settings.GetSubstitutePdbSourcePaths()),
-			filterAssistant_);
+			filterAssistant_,
+		    settings.GetBranchCoverage());
 
 		const auto& startInfo = settings.GetStartInfo();
 		int exitCode = debugger.Debug(startInfo, *this);
@@ -106,6 +112,7 @@ namespace CppCoverage
 	{
 		exceptionHandler_->OnExitProcess(hProcess);
 		executedAddressManager_->OnExitProcess(hProcess);
+		branchStepTracker_->OnExitProcess(::GetProcessId(hProcess));
 	}
 
 	//-------------------------------------------------------------------------
@@ -128,12 +135,22 @@ namespace CppCoverage
 
 	//-------------------------------------------------------------------------
 	IDebugEventsHandler::ExceptionType CodeCoverageRunner::OnException(
-		HANDLE hProcess, 
-		HANDLE hThread, 
+		HANDLE hProcess,
+		HANDLE hThread,
 		const EXCEPTION_DEBUG_INFO& exceptionDebugInfo)
 	{
 		std::wostringstream ostr;
-		
+
+		const auto& exceptionRecord = exceptionDebugInfo.ExceptionRecord;
+
+		// Branch coverage single-step attribution: intercept the step we
+		// armed BEFORE ExceptionHandler::HandleException, which would hand
+		// the first-chance step to the debuggee (it has no handler for it).
+		if (exceptionRecord.ExceptionCode == EXCEPTION_SINGLE_STEP)
+		{
+			return OnSingleStep(exceptionDebugInfo, hProcess, hThread);
+		}
+
 		auto status = exceptionHandler_->HandleException(hProcess, exceptionDebugInfo, ostr);
 
 		switch (status)
@@ -178,12 +195,115 @@ namespace CppCoverage
 
 		if (oldInstruction)
 		{
+			// Branch coverage: when the hit address is a conditional-branch
+			// site, request a single-step (in the same SetThreadContext as
+			// the rewind) and arm the per-thread pending outcome.
+			auto conditionSite = branchCoverageEnabled_
+			    ? executedAddressManager_->GetConditionSite(address)
+			    : ExecutedAddressManager::ConditionSiteInfo{};
+
+			const bool isConditionSite = conditionSite.takenTarget_ != 0;
+
+			LOG_TRACE << "BranchCoverage BP hit at 0x" << std::hex
+			          << reinterpret_cast<std::uint64_t>(addressValue) << std::dec
+			          << " isConditionSite=" << isConditionSite
+			          << " taken=0x" << std::hex << conditionSite.takenTarget_
+			          << " fallThrough=0x" << conditionSite.fallThrough_ << std::dec;
+
+			if (isConditionSite)
+			{
+				BranchStepTracker::PendingStep pendingStep;
+				pendingStep.siteAddress_ =
+				    reinterpret_cast<std::uint64_t>(addressValue);
+				pendingStep.takenTarget_ = conditionSite.takenTarget_;
+				pendingStep.fallThrough_ = conditionSite.fallThrough_;
+				branchStepTracker_->ArmStep(::GetThreadId(hThread), pendingStep);
+			}
+
 			breakpoint_->RemoveBreakPoint(address, *oldInstruction);
-			breakpoint_->AdjustEipAfterBreakPointRemoval(hThread);
+			breakpoint_->AdjustEipAfterBreakPointRemoval(
+			    hThread, isConditionSite);
 			return true;
 		}
 
 		return false;
+	}
+
+	//-------------------------------------------------------------------------
+	IDebugEventsHandler::ExceptionType CodeCoverageRunner::OnSingleStep(
+		const EXCEPTION_DEBUG_INFO& exceptionDebugInfo,
+		HANDLE hProcess,
+		HANDLE hThread)
+	{
+		auto threadId = ::GetThreadId(hThread);
+		const auto* pendingStepPtr = branchStepTracker_->GetPendingStep(threadId);
+
+		LOG_TRACE << "BranchCoverage SS event, pendingStep="
+		          << (pendingStepPtr ? "yes" : "no");
+
+		if (!pendingStepPtr)
+		{
+			// Not one of ours: a debuggee raising its own STATUS_SINGLE_STEP
+			// gets swallowed (same trade-off as the initial breakpoint).
+			LOG_WARNING << "Single step exception without pending branch step.";
+			return IDebugEventsHandler::ExceptionType::SingleStep;
+		}
+
+		// Local copy: CancelStep below erases the map node this pointer
+		// points into; anything read from it afterwards is freed memory.
+		const BranchStepTracker::PendingStep pendingStep{*pendingStepPtr};
+
+		// The landing address of the step (next instruction after the branch),
+		// as a plain 64-bit value for comparison with the recorded targets.
+#ifdef _M_ARM64
+		// On ARM64 the software-step exception reports the landing PC in the
+		// thread context, not reliably in ExceptionRecord.ExceptionAddress.
+		CONTEXT stepContext;
+		stepContext.ContextFlags = CONTEXT_CONTROL;
+		if (!GetThreadContext(hThread, &stepContext))
+			THROW_LAST_ERROR("Error in GetThreadContext", GetLastError());
+		auto landingAddress = static_cast<std::uint64_t>(stepContext.Pc);
+#else
+		auto landingAddress =
+		    reinterpret_cast<std::uint64_t>(
+		        exceptionDebugInfo.ExceptionRecord.ExceptionAddress);
+#endif
+
+		bool isFallThrough = landingAddress == pendingStep.fallThrough_;
+		bool isTaken = landingAddress == pendingStep.takenTarget_;
+
+		LOG_TRACE << "BranchCoverage SS landing=0x" << std::hex << landingAddress
+		          << " taken?=" << isTaken << " fall?=" << isFallThrough
+		          << " (targets 0x" << pendingStep.takenTarget_ << " / 0x"
+		          << pendingStep.fallThrough_ << ")" << std::dec;
+
+		branchStepTracker_->CancelStep(threadId);
+
+		if (isTaken || isFallThrough)
+		{
+			Address siteAddress{hProcess,
+			                    reinterpret_cast<void*>(pendingStep.siteAddress_)};
+			executedAddressManager_->MarkConditionOutcome(siteAddress, isTaken);
+
+			// Re-plant the one-shot site breakpoint while an outcome is
+			// still unseen (bounded by the observation cap): Emma semantics
+			// need both outcomes. Safe because the site was restored after
+			// its breakpoint fired; SetBreakPoints re-reads and re-saves the
+			// restored original instruction.
+			if (executedAddressManager_->ShouldReplantConditionSite(siteAddress))
+			{
+				std::vector<DWORD64> addresses{pendingStep.siteAddress_};
+				breakpoint_->SetBreakPoints(hProcess, std::move(addresses));
+			}
+
+			return IDebugEventsHandler::ExceptionType::SingleStep;
+		}
+
+		// Mismatch: the step did not land on either target (unexpected event
+		// ordering). The step flag is already consumed by this exception;
+		// dropping the pending state keeps the thread from trapping forever.
+		LOG_DEBUG << "Single step landed on unexpected address.";
+		return IDebugEventsHandler::ExceptionType::SingleStep;
 	}
 
 	//-------------------------------------------------------------------------
