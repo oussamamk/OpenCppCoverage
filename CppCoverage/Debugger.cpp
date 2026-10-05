@@ -177,7 +177,11 @@ namespace CppCoverage
 		switch (exceptionType)
 		{
 			case IDebugEventsHandler::ExceptionType::BreakPoint:
+			case IDebugEventsHandler::ExceptionType::SingleStep:
 			{
+				// A single step raised by the branch coverage machinery is a
+				// private event: swallow it with DBG_CONTINUE so the debuggee
+				// never sees EXCEPTION_SINGLE_STEP.
 				return ProcessStatus{ boost::none, DBG_CONTINUE };
 			}
 			case IDebugEventsHandler::ExceptionType::InvalidBreakPoint:

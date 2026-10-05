@@ -29,6 +29,7 @@ namespace CppCoverage
 		{
 			BreakPoint,
 			InvalidBreakPoint,
+			SingleStep,
 			NotHandled,
 			Error,
 			CppError
