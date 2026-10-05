@@ -156,9 +156,17 @@ foreach ($sub in @(
     @{ From = 'bin\libprotobuf.dll';     To = 'bin\libprotobuf.dll' },
     @{ From = 'bin\libprotobuf-lite.dll'; To = 'bin\libprotobuf-lite.dll' },
     @{ From = 'bin\libctemplate.dll';    To = 'bin\libctemplate.dll' },
+    @{ From = 'bin\gmock.dll';           To = 'bin\gmock.dll' },
+    @{ From = 'bin\gmock_main.dll';      To = 'bin\gmock_main.dll' },
+    @{ From = 'bin\gtest.dll';           To = 'bin\gtest.dll' },
+    @{ From = 'bin\gtest_main.dll';      To = 'bin\gtest_main.dll' },
     @{ From = 'debug\bin\libprotobufd.dll';  To = 'debug\bin\libprotobufd.dll' },
     @{ From = 'debug\bin\libprotobuf-lited.dll'; To = 'debug\bin\libprotobuf-lited.dll' },
     @{ From = 'debug\bin\libctemplate.dll'; To = 'debug\bin\libctemplate.dll' },
+    @{ From = 'debug\bin\gmockd.dll';        To = 'debug\bin\gmockd.dll' },
+    @{ From = 'debug\bin\gmock_maind.dll';   To = 'debug\bin\gmock_maind.dll' },
+    @{ From = 'debug\bin\gtestd.dll';        To = 'debug\bin\gtestd.dll' },
+    @{ From = 'debug\bin\gtest_maind.dll';   To = 'debug\bin\gtest_maind.dll' },
     @{ From = 'tools\protobuf';  To = 'tools\protobuf' }
 )) {
     $from = Join-Path $src $sub.From
