@@ -31,6 +31,8 @@ namespace CppCoverage
 		{
 			int executedLines = 0;
 			int unexecutedLines = 0;
+			int coveredBranches = 0;
+			int uncoveredBranches = 0;
 
 			for (const auto& lineCoverage : file.GetLines())
 			{
@@ -38,9 +40,18 @@ namespace CppCoverage
 					++executedLines;
 				else
 					++unexecutedLines;
+
+				for (const auto& condition : lineCoverage.GetConditions())
+				{
+					if (condition.IsCovered())
+						++coveredBranches;
+					else
+						++uncoveredBranches;
+				}
 			}
 
-			return CoverageRate{executedLines, unexecutedLines};
+			return CoverageRate{executedLines, unexecutedLines,
+			                    coveredBranches, uncoveredBranches};
 		}
 		
 		//---------------------------------------------------------------------

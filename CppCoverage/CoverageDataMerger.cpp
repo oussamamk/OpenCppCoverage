@@ -82,9 +82,18 @@ namespace CppCoverage
 					auto hasBeenExecuted = line.HasBeenExecuted();
 
 					if (!(*destinationFile)[lineNumber])
-						destinationFile->AddLine(lineNumber, hasBeenExecuted);
-					else if (hasBeenExecuted)
-						destinationFile->UpdateLine(lineNumber, true);
+						destinationFile->AddLine(line);
+					else
+					{
+						if (hasBeenExecuted)
+							destinationFile->UpdateLine(lineNumber, true);
+
+						// Branch conditions OR-merge across runs regardless of
+						// the executed flag.
+						const auto& conditions = line.GetConditions();
+						if (!conditions.empty())
+							destinationFile->MergeLineConditions(lineNumber, conditions);
+					}
 				}
 			}
 		}
