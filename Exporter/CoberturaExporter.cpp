@@ -53,12 +53,50 @@ namespace Exporter
 		}
 
 		//-------------------------------------------------------------------------
+		// Emma-style condition coverage percentage for one condition,
+		// e.g. L"50% (1/2)".
+		std::wstring GetConditionCoverageText(
+			const Plugin::LineCoverage::Condition& condition)
+		{
+			int coveredCount = (condition.takenSeen_ ? 1 : 0) +
+			                   (condition.notTakenSeen_ ? 1 : 0);
+			std::wstring percent;
+
+			switch (coveredCount)
+			{
+				case 2: percent = L"100%"; break;
+				case 1: percent = L"50%"; break;
+				default: percent = L"0%"; break;
+			}
+
+			return percent + L" (" + std::to_wstring(coveredCount) + L"/2)";
+		}
+
+		//-------------------------------------------------------------------------
+		std::wstring GetConditionCoverageText(
+			const std::vector<Plugin::LineCoverage::Condition>& conditions)
+		{
+			int covered = 0;
+
+			for (const auto& condition : conditions)
+			{
+				if (condition.IsCovered())
+					++covered;
+			}
+
+			int percent = static_cast<int>(100.0 * covered / conditions.size());
+			return std::to_wstring(percent) + L"% (" +
+			       std::to_wstring(covered) + L"/" +
+			       std::to_wstring(conditions.size()) + L")";
+		}
+
+		//-------------------------------------------------------------------------
 		void SetCoverage(
 			property_tree::wptree& node,
 			const CppCoverage::CoverageRate& coverageRate)
 		{
 			node.put(L"<xmlattr>.line-rate", coverageRate.GetRate());
-			node.put(L"<xmlattr>.branch-rate", 0);
+			node.put(L"<xmlattr>.branch-rate", coverageRate.GetBranchRate());
 			node.put(L"<xmlattr>.complexity", 0);
 		}
 
@@ -85,6 +123,32 @@ namespace Exporter
 
 				lineTree.put(L"<xmlattr>.number", std::to_wstring(line.GetLineNumber()));
 				lineTree.put(L"<xmlattr>.hits", line.HasBeenExecuted() ? L"1" : L"0");
+
+				// Branch coverage data (only present with --branch). The
+				// condition-coverage attribute and <conditions> block follow
+				// the Emma/Cobertura convention.
+				const auto& conditions = line.GetConditions();
+				if (!conditions.empty())
+				{
+					lineTree.put(L"<xmlattr>.branch", L"true");
+					lineTree.put(L"<xmlattr>.condition-coverage",
+					             GetConditionCoverageText(conditions));
+
+					property_tree::wptree& conditionsTree =
+					    AddChild(lineTree, L"conditions");
+
+					for (const auto& condition : conditions)
+					{
+						property_tree::wptree& conditionTree =
+						    AddChild(conditionsTree, L"condition");
+
+						conditionTree.put(L"<xmlattr>.number",
+						                  std::to_wstring(condition.index_));
+						conditionTree.put(L"<xmlattr>.type", L"jump");
+						conditionTree.put(L"<xmlattr>.coverage",
+						                  GetConditionCoverageText(condition));
+					}
+				}
 			}
 		}
 
@@ -114,8 +178,10 @@ namespace Exporter
 		void SetCoverageAttributes(property_tree::wptree& coverageTree,
 		                           const CppCoverage::CoverageRate& coverageRate)
 		{
-			coverageTree.put(L"<xmlattr>.branches-covered", 0);
-			coverageTree.put(L"<xmlattr>.branches-valid", 0);
+			coverageTree.put(L"<xmlattr>.branches-covered",
+			                 coverageRate.GetCoveredBranchesCount());
+			coverageTree.put(L"<xmlattr>.branches-valid",
+			                 coverageRate.GetTotalBranchesCount());
 
 			auto now = std::chrono::system_clock::now();
 			auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
