@@ -44,6 +44,7 @@
 
 #include "TestCoverageConsole/TestCoverageConsole.hpp"
 #include "TestCoverageConsole/TestBasic.hpp"
+#include "TestCoverageConsole/TestBranches.hpp"
 #include "TestCoverageConsole/TestThread.hpp"
 #include "TestCoverageConsole/SpecialLineInfo.hpp"
 #include "TestCoverageConsole/FileWithSpecialCharéàè.hpp"
@@ -370,6 +371,49 @@ namespace CppCoverageTest
 		ASSERT_TRUE(boost::algorithm::iequals(specialLineInfoFilename, file.GetPath().filename().wstring()));
 		for (const auto& lineInfo : file.GetLines())
 			ASSERT_TRUE(lineInfo.HasBeenExecuted());
+	}
+
+	//-------------------------------------------------------------------------
+	TEST_F(CodeCoverageRunnerTest, BranchCoverage)
+	{
+		CoverageArgs args{
+			{ TestCoverageConsole::TestBranches },
+			TestCoverageConsole::GetOutputBinaryPath().filename().wstring(),
+			TestCoverageConsole::GetBranchesCppFilename().wstring() };
+
+		args.branchCoverage_ = true;
+		auto coverageData = ComputeCoverageDataPatterns(args);
+		auto& file = GetFirstFileCoverage(coverageData);
+
+		// IfElse drives both outcomes of its condition: the condition must
+		// be fully covered (Emma semantics).
+		auto ifElseLine = TestCoverageConsole::GetBranchesIfElseLine();
+		const auto* ifElseLineCoverage = file[ifElseLine];
+		ASSERT_NE(nullptr, ifElseLineCoverage);
+		ASSERT_EQ(1, ifElseLineCoverage->GetConditions().size());
+		if (ifElseLineCoverage->GetConditions().size() == 1)
+		{
+			EXPECT_TRUE(ifElseLineCoverage->GetConditions()[0].takenSeen_);
+			EXPECT_TRUE(ifElseLineCoverage->GetConditions()[0].notTakenSeen_);
+		}
+
+		// The ternary line also carries one condition, fully covered.
+		auto ternaryLine = TestCoverageConsole::GetBranchesTernaryLine();
+		auto ternaryLineCoverage = file[ternaryLine];
+		ASSERT_NE(nullptr, ternaryLineCoverage);
+		ASSERT_EQ(1, ternaryLineCoverage->GetConditions().size());
+		if (ternaryLineCoverage->GetConditions().size() == 1)
+		{
+			EXPECT_TRUE(ternaryLineCoverage->GetConditions()[0].IsCovered());
+		}
+
+		// A run WITHOUT branch coverage must report no conditions at all.
+		args.branchCoverage_ = false;
+		auto lineOnlyCoverage = ComputeCoverageDataPatterns(args);
+		auto& lineOnlyFile = GetFirstFileCoverage(lineOnlyCoverage);
+		const auto* lineOnlyIfElse = lineOnlyFile[ifElseLine];
+		ASSERT_NE(nullptr, lineOnlyIfElse);
+		EXPECT_EQ(0, lineOnlyIfElse->GetConditions().size());
 	}
 
 	//-------------------------------------------------------------------------

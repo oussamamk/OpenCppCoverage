@@ -17,6 +17,8 @@
 #include "stdafx.h"
 
 #include <filesystem>
+#include <fstream>
+#include <cctype>
 
 #include "TestCoverageConsole/TestCoverageConsole.hpp"
 #include "TestHelper/TemporaryPath.hpp"
@@ -87,6 +89,39 @@ namespace OpenCppCoverageTest
 	TEST(ImportExportTest, ExportCobertura)
 	{
 		RunCoverage(cov::ExportOptionParser::ExportTypeCoberturaValue);
+	}
+
+	//-------------------------------------------------------------------------
+	TEST(ImportExportTest, ExportCoberturaWithBranchCoverage)
+	{
+		TestHelper::TemporaryPath output;
+		fs::path testCoverageConsole = TestCoverageConsole::GetOutputBinaryPath();
+
+		std::vector<std::pair<std::string, std::string>> coverageArguments;
+		AddDefaultFilters(coverageArguments, testCoverageConsole);
+		coverageArguments.emplace_back(cov::ProgramOptions::BranchOption, "");
+		coverageArguments.emplace_back(cov::ProgramOptions::QuietOption, "");
+		coverageArguments.push_back(BuildExportTypeString(
+			cov::ExportOptionParser::ExportTypeCoberturaValue, output.GetPath()));
+
+		std::vector<std::wstring> arguments{ TestCoverageConsole::TestBranches };
+		int exitCode = RunCoverageFor(coverageArguments, testCoverageConsole, arguments, nullptr);
+		ASSERT_EQ(0, exitCode);
+		ASSERT_TRUE(Tools::FileExists(output.GetPath()));
+
+		// The report must carry real branch data: condition-coverage on a
+		// line of the branchy scenario and non-zero root branch totals.
+		std::ifstream ifs{ output.GetPath().string().c_str() };
+		ASSERT_TRUE(ifs.good());
+		std::string xml{ std::istreambuf_iterator<char>(ifs),
+		                 std::istreambuf_iterator<char>() };
+
+		ASSERT_NE(std::string::npos, xml.find("condition-coverage="));
+		// branches-valid is non-zero (the character after the quote is a digit > 0).
+		auto pos = xml.find("branches-valid=\"");
+		ASSERT_NE(std::string::npos, pos);
+		ASSERT_TRUE(std::isdigit(static_cast<unsigned char>(xml[pos + 16])));
+		ASSERT_NE('0', xml[pos + 16]);
 	}
 
 	//-------------------------------------------------------------------------
