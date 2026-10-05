@@ -26,14 +26,19 @@ namespace FileFilter
 		LineInfo(
 			int lineNumber,
 			DWORD64 virtualAddress,
-			ULONG symbolIndex)
+			ULONG symbolIndex,
+			unsigned long length = 0)
 			: lineNumber_{ lineNumber }
 			, virtualAddress_{ virtualAddress }
 			, symbolIndex_{ symbolIndex }
+			, length_{ length }
 		{}
 
 		const int lineNumber_;
 		const ULONG symbolIndex_;
 		const DWORD64 virtualAddress_;
+		// Byte length of the line's code block as reported by DIA
+		// (IDiaLineNumber::get_length); 0 when unavailable.
+		const unsigned long length_;
 	};
 }

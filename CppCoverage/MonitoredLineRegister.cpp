@@ -144,7 +144,8 @@ namespace CppCoverage
 		for (const auto& line : lines)
 		{
 			lineInfos.emplace_back(
-			    line.lineNumber_, line.virtualAddress_, line.symbolIndex_);
+			    line.lineNumber_, line.virtualAddress_, line.symbolIndex_,
+			    line.length_);
 		}
 
 		FileFilter::FileInfo fileInfo{path, std::move(lineInfos)};
@@ -155,6 +156,7 @@ namespace CppCoverage
 		std::vector<int> conditionLineNumbers;
 		std::vector<DWORD64> conditionLineAddresses;
 		std::vector<ULONG> conditionLineSymbols;
+		std::vector<unsigned long> conditionLineLengths;
 
 		for (const auto& lineInfo : fileInfo.lineInfoColllection_)
 		{
@@ -171,6 +173,7 @@ namespace CppCoverage
 				conditionLineNumbers.push_back(lineNumber);
 				conditionLineAddresses.push_back(addressValue);
 				conditionLineSymbols.push_back(lineInfo.symbolIndex_);
+				conditionLineLengths.push_back(lineInfo.length_);
 			}
 		}
 
@@ -188,7 +191,8 @@ namespace CppCoverage
 			    reinterpret_cast<std::uint64_t>(moduleInfo.baseOfImage_),
 			    conditionLineNumbers,
 			    conditionLineAddresses,
-			    conditionLineSymbols);
+			    conditionLineSymbols,
+			    conditionLineLengths);
 
 			for (const auto& site : conditionSites)
 			{

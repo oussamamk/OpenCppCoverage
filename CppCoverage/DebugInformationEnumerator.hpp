@@ -35,10 +35,12 @@ namespace CppCoverage
 		{
 			Line(unsigned long lineNumber,
 			     int64_t virtualAddress,
-			     unsigned long symbolIndex)
+			     unsigned long symbolIndex,
+			     unsigned long length = 0)
 			    : lineNumber_{lineNumber},
 			      virtualAddress_{virtualAddress},
-			      symbolIndex_{symbolIndex}
+			      symbolIndex_{symbolIndex},
+			      length_{length}
 			{
 			}
 			Line(const Line&) = default;
@@ -48,6 +50,9 @@ namespace CppCoverage
 			unsigned long lineNumber_;
 			unsigned long symbolIndex_;
 			int64_t virtualAddress_;
+			// Byte length of the line's code block as reported by DIA
+			// (IDiaLineNumber::get_length); 0 when unavailable.
+			unsigned long length_;
 		};
 
 		virtual ~IDebugInformationHandler() = default;

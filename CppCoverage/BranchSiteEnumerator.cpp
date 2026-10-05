@@ -41,12 +41,14 @@ namespace CppCoverage
 		std::uint64_t baseOfImage,
 		const std::vector<int>& lineNumbers,
 		const std::vector<DWORD64>& lineAddresses,
-		const std::vector<ULONG>& lineSymbols) const
+		const std::vector<ULONG>& lineSymbols,
+		const std::vector<unsigned long>& lineLengths) const
 	{
 		std::vector<ConditionSite> sites;
 
 		if (lineNumbers.size() != lineAddresses.size() ||
-		    lineNumbers.size() != lineSymbols.size() || lineNumbers.empty())
+		    lineNumbers.size() != lineSymbols.size() ||
+		    lineNumbers.size() != lineLengths.size() || lineNumbers.empty())
 			return sites;
 
 		struct LineRecord
@@ -54,13 +56,15 @@ namespace CppCoverage
 			std::uint64_t rva_;
 			int lineNumber_;
 			ULONG symbolIndex_;
+			unsigned long length_;
 		};
 
 		std::vector<LineRecord> records;
 		records.reserve(lineNumbers.size());
 		for (std::size_t i = 0; i < lineNumbers.size(); ++i)
 			records.push_back(LineRecord{lineAddresses[i] - baseOfImage,
-			                             lineNumbers[i], lineSymbols[i]});
+			                             lineNumbers[i], lineSymbols[i],
+			                             lineLengths[i]});
 
 		std::sort(records.begin(), records.end(),
 			[](const LineRecord& a, const LineRecord& b)
@@ -83,8 +87,9 @@ namespace CppCoverage
 		if (deduped.empty())
 			return sites;
 
-		// Per-line byte range: [rva_i, rva_{i+1}) within the SAME symbol,
-		// capped for the last one. Grouping by symbol keeps ranges from
+		// Per-line byte range. DIA's own block length is authoritative when
+		// present; else fall back to [rva_i, next-same-symbol-record), capped
+		// for the last one. Grouping by symbol keeps fallback ranges from
 		// crossing function boundaries when DIA interleaves compilands.
 		std::vector<std::pair<std::uint64_t, std::uint64_t>> ranges;
 		ranges.reserve(deduped.size());
@@ -93,12 +98,19 @@ namespace CppCoverage
 			auto begin = deduped[i].rva_;
 			std::uint64_t end = begin + LastLineCap;
 
-			for (std::size_t j = i + 1; j < deduped.size(); ++j)
+			if (deduped[i].length_ > 0)
 			{
-				if (deduped[j].symbolIndex_ != deduped[i].symbolIndex_)
-					continue;
-				end = std::min(deduped[j].rva_, begin + MaxLineRange);
-				break;
+				end = begin + deduped[i].length_;
+			}
+			else
+			{
+				for (std::size_t j = i + 1; j < deduped.size(); ++j)
+				{
+					if (deduped[j].symbolIndex_ != deduped[i].symbolIndex_)
+						continue;
+					end = std::min(deduped[j].rva_, begin + MaxLineRange);
+					break;
+				}
 			}
 
 			if (end <= begin)
@@ -106,9 +118,16 @@ namespace CppCoverage
 			ranges.emplace_back(begin, end);
 		}
 
-		// Decode one merged read per line range (they are disjoint and
-		// sorted by construction).
+		// Decode one merged read per line range (sorted by construction;
+		// fallback ranges can overlap, see dedupe below).
 		std::map<int, unsigned int> conditionCountPerLine;
+		// Dedupe by site address: fallback ranges can overlap when DIA's
+		// symbol granularity splits a function (a record outside a lexical
+		// block over-extends into the block's records). The first range
+		// wins; without this, the same site would be registered under two
+		// lines and the second registration would repoint the runtime
+		// condition record, leaving the first line's condition uncredited.
+		std::map<std::uint64_t, int> conditionIndexByAddress;
 		for (std::size_t i = 0; i < ranges.size(); ++i)
 		{
 			const auto begin = ranges[i].first;
@@ -148,7 +167,11 @@ namespace CppCoverage
 
 			for (const auto& site : detected)
 			{
+				if (!conditionIndexByAddress.emplace(site.address_, 0).second)
+					continue; // already attributed to an earlier range
+
 				auto index = conditionCountPerLine[deduped[i].lineNumber_]++;
+				conditionIndexByAddress[site.address_] = index;
 
 				ConditionSite conditionSite;
 				conditionSite.siteAddress_ = site.address_;
