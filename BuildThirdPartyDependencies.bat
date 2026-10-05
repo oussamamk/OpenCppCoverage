@@ -17,8 +17,8 @@ rem without repeating the whole pipeline.
 rem
 rem Uses the pinned 2020 vcpkg (ed0df8e) for x86/x64 provenance (boost 1.72
 rem vc142) and for arm64 protobuf/gtest/ctemplate; a modern-vcpkg instance
-rem builds arm64 boost+zlib. The final three-arch nupkg is assembled by
-rem Build\Dependencies\assemble-thirdparty-1.5.0.ps1 into packages\.
+rem Builds arm64 boost+zlib. The final three-arch nupkg is assembled by
+rem Build\Dependencies\assemble-thirdparty-1.6.0.ps1 into packages\.
 rem Poco arm64 is NOT produced by any script (needs its own modern-vcpkg port
 rem set); InstallThirdPartyLibraries.ps1 merges a Poco arm64 subset after
 rem install.
@@ -41,4 +41,4 @@ call "%~dp0BuildPackageDependencies.bat"
 IF ERRORLEVEL 1 (echo ERROR: BuildPackageDependencies.bat failed & exit /b 1)
 
 echo.
-echo ALL DONE: packages\ThirdParty.1.5.0.nupkg
+echo ALL DONE: packages\ThirdParty.1.6.0.nupkg

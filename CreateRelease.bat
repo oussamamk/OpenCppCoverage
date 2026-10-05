@@ -40,6 +40,7 @@ xcopy /y %X86%\bz2.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\zstd.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\zlib1.dll NewRelease\x86\Binaries\
 xcopy /y %X86%\lzma.dll NewRelease\x86\Binaries\
+xcopy /y %X86%\capstone.dll NewRelease\x86\Binaries\
 mkdir NewRelease\x86\Binaries\Plugins\Exporter
 
 mkdir NewRelease\x86\Pdb
@@ -80,6 +81,7 @@ xcopy /y %X64%\bz2.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\zstd.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\zlib1.dll NewRelease\x64\Binaries\
 xcopy /y %X64%\lzma.dll NewRelease\x64\Binaries\
+xcopy /y %X64%\capstone.dll NewRelease\x64\Binaries\
 
 mkdir NewRelease\x64\Pdb
 xcopy /y %X64%\OpenCppCoverage.pdb NewRelease\x64\Pdb\
@@ -119,6 +121,7 @@ xcopy /y %A64%\boost_log-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_iostreams-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_program_options-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
 xcopy /y %A64%\boost_thread-vc143-mt-a64-1_92.dll NewRelease\ARM64\Binaries\
+xcopy /y %A64%\capstone.dll NewRelease\ARM64\Binaries\
 
 mkdir NewRelease\ARM64\Pdb
 xcopy /y %A64%\OpenCppCoverage.pdb NewRelease\ARM64\Pdb\

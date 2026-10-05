@@ -76,6 +76,10 @@ IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 .\vcpkg install boost-iostreams:x86-windows
 IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
+rem capstone (disassembler) - branch coverage needs instruction decoding.
+rem Architectures are opt-in features in the capstone port.
+.\vcpkg install capstone[core,arm64,x86]:x86-windows
+IF ERRORLEVEL 1 (echo ERROR: vcpkg install failed & exit /b 1)
 
 echo x86 dependencies done - run BuildArm64Dependencies.bat and
 echo BuildPackageDependencies.bat next (or BuildThirdPartyDependencies.bat for all).

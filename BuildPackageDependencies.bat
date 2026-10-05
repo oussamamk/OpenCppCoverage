@@ -46,7 +46,7 @@ rem ---------------------------------------------------------------------------
 rem delete any previous nupkg first: vcpkg export refuses to overwrite... it
 rem does overwrite, but a FAILED export leaves the old file behind and the
 rem IF NOT EXIST below would pass on stale output.
-IF EXIST ThirdParty.1.5.0.nupkg del ThirdParty.1.5.0.nupkg
+IF EXIST ThirdParty.1.6.0.nupkg del ThirdParty.1.6.0.nupkg
 .\vcpkg export ^
 	zlib:x64-windows zlib:x86-windows ^
 	pcre:x64-windows pcre:x86-windows ^
@@ -67,10 +67,11 @@ IF EXIST ThirdParty.1.5.0.nupkg del ThirdParty.1.5.0.nupkg
 	boost-uuid:x64-windows boost-uuid:x86-windows ^
 	boost-locale:x64-windows boost-locale:x86-windows ^
 	boost-iostreams:x64-windows boost-iostreams:x86-windows ^
-	--nuget --nuget-id=ThirdParty --nuget-version=1.5.0
+	capstone:x64-windows capstone:x86-windows ^
+	--nuget --nuget-id=ThirdParty --nuget-version=1.6.0
 
-IF NOT EXIST ThirdParty.1.5.0.nupkg (
-	echo ERROR: pinned vcpkg export did not produce ThirdParty.1.5.0.nupkg & exit /b 1
+IF NOT EXIST ThirdParty.1.6.0.nupkg (
+	echo ERROR: pinned vcpkg export did not produce ThirdParty.1.6.0.nupkg & exit /b 1
 )
 
 rem ---------------------------------------------------------------------------
@@ -78,9 +79,10 @@ rem Export 2: arm64 boost+zlib from the modern vcpkg
 rem ---------------------------------------------------------------------------
 cd ..\vcpkg-modern
 
-IF EXIST ThirdPartyArm64.1.5.0.nupkg del ThirdPartyArm64.1.5.0.nupkg
+IF EXIST ThirdPartyArm64.1.6.0.nupkg del ThirdPartyArm64.1.6.0.nupkg
 .\vcpkg export ^
 	zlib:arm64-windows ^
+	capstone:arm64-windows ^
 	boost-optional:arm64-windows ^
 	boost-filesystem:arm64-windows ^
 	boost-algorithm:arm64-windows ^
@@ -94,10 +96,10 @@ IF EXIST ThirdPartyArm64.1.5.0.nupkg del ThirdPartyArm64.1.5.0.nupkg
 	boost-uuid:arm64-windows ^
 	boost-locale:arm64-windows ^
 	boost-iostreams:arm64-windows ^
-	--nuget --nuget-id=ThirdPartyArm64 --nuget-version=1.5.0
+	--nuget --nuget-id=ThirdPartyArm64 --nuget-version=1.6.0
 
-IF NOT EXIST ThirdPartyArm64.1.5.0.nupkg (
-	echo ERROR: modern vcpkg export did not produce ThirdPartyArm64.1.5.0.nupkg & exit /b 1
+IF NOT EXIST ThirdPartyArm64.1.6.0.nupkg (
+	echo ERROR: modern vcpkg export did not produce ThirdPartyArm64.1.6.0.nupkg & exit /b 1
 )
 
 rem ---------------------------------------------------------------------------
@@ -105,4 +107,4 @@ rem Assemble the final three-arch package into %ROOT_FOLDER%..\..\packages
 rem ---------------------------------------------------------------------------
 cd ..\..
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\assemble-thirdparty-1.5.0.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Build\Dependencies\assemble-thirdparty-1.6.0.ps1"

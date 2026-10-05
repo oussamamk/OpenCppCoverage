@@ -6,7 +6,7 @@
 #   .\BuildEnvironment.ps1 -SkipDeps             # packages\ already installed
 #
 # Steps:
-#   1. nuget.exe + ThirdParty.1.5.0 nupkg (local file > fork release download)
+#   1. nuget.exe + ThirdParty.1.6.0 nupkg (local file > fork release download)
 #      and install into packages\
 #   2. msbuild the solution for each requested platform
 #   3. optionally run CreateRelease.bat to assemble NewRelease\<arch>\{Binaries,Pdb}
@@ -19,7 +19,7 @@ param(
     # Platforms must be spelled as solution platforms: x86, x64, ARM64.
     [string[]]$Platforms = @('x64', 'ARM64'),
     [switch]$Package,          # run CreateRelease.bat after a Release build
-    [switch]$SkipDeps          # packages\thirdparty.1.5.0 already installed
+    [switch]$SkipDeps          # packages\thirdparty.1.6.0 already installed
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +27,7 @@ $repoRoot = Split-Path $script:MyInvocation.MyCommand.Path
 Set-Location $repoRoot
 
 $NuGetId = 'ThirdParty'
-$NuGetVersion = '1.5.0'
+$NuGetVersion = '1.6.0'
 $PackagesDir = Join-Path $repoRoot 'packages'
 $InstalledMarker = Join-Path $PackagesDir "$NuGetId.$NuGetVersion\build\native\$NuGetId.targets"
 $ForkReleaseUrl = "https://github.com/oussamamk/OpenCppCoverageThirdParty/releases/download/$NuGetVersion/$NuGetId.$NuGetVersion.nupkg"
